@@ -414,3 +414,4 @@ Once active, your AI assistant can read the live schema, run queries, inspect er
 ## License
 
 This project is open-sourced under the [MIT License](LICENSE).
+# quiz
