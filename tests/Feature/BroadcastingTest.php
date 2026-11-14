@@ -25,6 +25,7 @@ it('AttemptSubmittedEvent is dispatched when submitExam completes', function () 
         ['score' => 0, 'is_correct' => false, 'explanation' => '', 'suggestion' => ''],
     ]);
 
+    giveStudentAccess($student, $exam);
     Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam])
         ->call('submitExam');
@@ -48,6 +49,7 @@ it('AttemptSubmittedEvent payload contains correct student_count', function () {
         ['score' => 0, 'is_correct' => false, 'explanation' => '', 'suggestion' => ''],
     ]);
 
+    giveStudentAccess($student, $exam);
     Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam])
         ->call('submitExam');
@@ -71,6 +73,7 @@ it('AttemptSubmittedEvent is NOT dispatched when broadcasting is not reverb', fu
         ['score' => 0, 'is_correct' => false, 'explanation' => '', 'suggestion' => ''],
     ]);
 
+    giveStudentAccess($student, $exam);
     Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam])
         ->call('submitExam');
@@ -119,6 +122,7 @@ it('leaderboard page shows top-10 attempts ordered by score', function () {
 
     $viewer = $students->first();
 
+    giveStudentAccess($viewer, $exam);
     $component = Livewire::actingAs($viewer)
         ->test('pages::student.leaderboard', ['exam' => $exam]);
 
@@ -134,6 +138,7 @@ it('leaderboard page returns 404 when leaderboard_enabled is false', function ()
     $exam = Exam::factory()->published()->for($teacher)->create(['leaderboard_enabled' => false]);
     $student = User::factory()->student()->create();
 
+    giveStudentAccess($student, $exam);
     Livewire::actingAs($student)
         ->test('pages::student.leaderboard', ['exam' => $exam])
         ->assertStatus(404);
@@ -154,6 +159,7 @@ it('leaderboard myRank returns correct position for the authenticated student', 
     }
 
     // student[1] is rank 2
+    giveStudentAccess($students[1], $exam);
     $component = Livewire::actingAs($students[1])
         ->test('pages::student.leaderboard', ['exam' => $exam]);
 
@@ -165,6 +171,7 @@ it('leaderboard returns 404 for unpublished exam', function () {
     $exam = Exam::factory()->for($teacher)->create(['leaderboard_enabled' => true]);
     $student = User::factory()->student()->create();
 
+    giveStudentAccess($student, $exam);
     Livewire::actingAs($student)
         ->test('pages::student.leaderboard', ['exam' => $exam])
         ->assertStatus(404);

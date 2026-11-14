@@ -1,5 +1,9 @@
 <?php
 
+use App\Models\Classroom;
+use App\Models\Exam;
+use App\Models\ExamAssignment;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Ai\Embeddings;
 use Tests\TestCase;
@@ -49,4 +53,23 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Give a student access to an exam the way the app does it: put them in one of the
+ * exam owner's classrooms and assign the exam to that classroom.
+ *
+ * @param  array<string, mixed>  $assignment  Overrides for the assignment (opens_at, closes_at, reveal_answers_at, subject_id)
+ */
+function giveStudentAccess(User $student, Exam $exam, array $assignment = []): ExamAssignment
+{
+    $classroom = Classroom::query()->where('user_id', $exam->user_id)->first()
+        ?? Classroom::factory()->create(['user_id' => $exam->user_id]);
+
+    $classroom->students()->syncWithoutDetaching([$student->id]);
+
+    return ExamAssignment::updateOrCreate(
+        ['exam_id' => $exam->id, 'classroom_id' => $classroom->id],
+        $assignment,
+    );
 }

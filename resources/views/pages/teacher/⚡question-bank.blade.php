@@ -99,7 +99,7 @@ new #[Title('Question Bank')] class extends Component {
 <div class="flex flex-col gap-6">
     <div class="flex items-center justify-between">
         <div>
-            <flux:heading size="xl">Question Bank</flux:heading>
+            <h1 class="font-display text-3xl text-charcoal-900 md:text-4xl">Question Bank</h1>
             <flux:text>All questions across your exams</flux:text>
         </div>
         <flux:button variant="ghost" icon="arrow-left" :href="route('teacher.exams.index')" wire:navigate>
@@ -164,7 +164,7 @@ new #[Title('Question Bank')] class extends Component {
                 </div>
             </div>
         @empty
-            <div class="rounded-xl border border-dashed p-10 text-center" style="border-color:var(--color-border-hover)">
+            <div class="empty-state rounded-xl border border-dashed p-10 text-center" style="border-color:var(--color-border-hover)">
                 <flux:text>No questions found.</flux:text>
             </div>
         @endforelse

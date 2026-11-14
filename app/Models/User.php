@@ -6,6 +6,7 @@ namespace App\Models;
 use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -88,5 +89,27 @@ class User extends Authenticatable
     public function attempts(): HasMany
     {
         return $this->hasMany(Attempt::class);
+    }
+
+    /**
+     * Classrooms owned by this user (teachers).
+     *
+     * @return HasMany<Classroom, $this>
+     */
+    public function classrooms(): HasMany
+    {
+        return $this->hasMany(Classroom::class);
+    }
+
+    /**
+     * Classrooms this user has joined (students).
+     *
+     * @return BelongsToMany<Classroom, $this>
+     */
+    public function enrolledClassrooms(): BelongsToMany
+    {
+        return $this->belongsToMany(Classroom::class, 'classroom_student')
+            ->withPivot('joined_at')
+            ->withTimestamps();
     }
 }

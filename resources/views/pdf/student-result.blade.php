@@ -77,6 +77,12 @@
     {{-- Question breakdown --}}
     <h2>Question Review</h2>
 
+    @if (! ($reveal ?? true))
+        <div class="ai-tip" style="margin-bottom:10px;">
+            Correct answers and explanations are not available yet. Your teacher will release them later.
+        </div>
+    @endif
+
     @foreach ($attempt->exam->questions as $index => $question)
         @php
             $given      = $attempt->answers[$question->id] ?? null;
@@ -113,11 +119,11 @@
 
             <div class="answer-row">Your answer: <strong>{{ $rawAnswer ?? 'Not answered' }}</strong></div>
 
-            @if (! $isCorrect && ! $isAiGraded)
+            @if (! $isCorrect && ! $isAiGraded && ($reveal ?? true))
                 <div class="correct-answer-row">Correct answer: <strong>{{ $question->correct_answer }}</strong></div>
             @endif
 
-            @if ($isAiGraded)
+            @if ($isAiGraded && ($reveal ?? true))
                 @if ($given['ai_explanation'] ?? null)
                     <div class="ai-explanation">{{ $given['ai_explanation'] }}</div>
                 @endif

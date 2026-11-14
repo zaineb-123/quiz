@@ -18,6 +18,7 @@ it('toggleFlag persists the flagged state to the database', function () {
         'completed_at' => null,
     ]);
 
+    giveStudentAccess($student, $exam);
     $component = Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam])
         ->call('toggleFlag', $question->id);
@@ -35,6 +36,7 @@ it('toggling flag twice unflags the question', function () {
     $exam = Exam::factory()->published()->for($teacher)->create(['time_limit' => null]);
     $question = Question::factory()->for($exam)->create();
 
+    giveStudentAccess($student, $exam);
     Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam])
         ->call('toggleFlag', $question->id)
@@ -49,11 +51,13 @@ it('flagged questions survive a page reload', function () {
     $question = Question::factory()->for($exam)->create();
 
     // First visit — flag the question
+    giveStudentAccess($student, $exam);
     Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam])
         ->call('toggleFlag', $question->id);
 
     // Second visit — flag should be restored from DB
+    giveStudentAccess($student, $exam);
     $component = Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam]);
 
@@ -67,6 +71,7 @@ it('flaggedCount reflects the number of flagged questions', function () {
     $q1 = Question::factory()->for($exam)->create();
     $q2 = Question::factory()->for($exam)->create();
 
+    giveStudentAccess($student, $exam);
     $component = Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam]);
 
@@ -86,6 +91,7 @@ it('filteredQuestions returns only flagged questions when filter is set to flagg
     $q1 = Question::factory()->for($exam)->create();
     $q2 = Question::factory()->for($exam)->create();
 
+    giveStudentAccess($student, $exam);
     $component = Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam])
         ->call('toggleFlag', $q1->id)
@@ -104,6 +110,7 @@ it('submitExam grades answers correctly using the nested value shape', function 
         'correct_answer' => 'Paris',
     ]);
 
+    giveStudentAccess($student, $exam);
     Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam])
         ->set("answers.{$question->id}.value", 'Paris')
@@ -122,6 +129,7 @@ it('submitExam preserves flag state in the saved answers', function () {
         'correct_answer' => 'Paris',
     ]);
 
+    giveStudentAccess($student, $exam);
     Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam])
         ->call('toggleFlag', $question->id)

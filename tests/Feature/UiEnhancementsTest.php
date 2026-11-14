@@ -189,6 +189,7 @@ it('draft exam is not accessible without preview param', function () {
 
     Question::factory()->for($exam)->create();
 
+    giveStudentAccess($student, $exam);
     Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam])
         ->assertNotFound();

@@ -3,55 +3,29 @@
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-screen antialiased" style="background-color:#F8F9FA; font-family:'Lexend',sans-serif;">
+    <body class="min-h-screen antialiased" style="font-family:'Lexend',sans-serif;">
+        <div class="aurora relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-10 text-center">
+            <div class="grid-fade absolute inset-0"></div>
 
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; padding:2rem 1.5rem; text-align:center;">
-
-            {{-- Logo --}}
-            <a href="{{ url('/') }}" class="mb-10 flex items-center gap-2">
+            <a href="{{ url('/') }}" class="relative z-10 mb-12 flex items-center gap-3">
                 <x-app-logo-icon class="size-9" />
-                <span style="font-size:1.125rem; font-weight:700; color:#1F2937;">{{ config('app.name') }}</span>
+                <span class="text-lg font-bold text-white">{{ config('app.name') }}</span>
             </a>
 
-            {{-- Error card --}}
-            <div style="width:100%; max-width:28rem; background:#FFFFFF; border:1px solid #E5E7EB; border-radius:14px; padding:2.5rem 2rem; box-shadow:0 1px 3px 0 rgba(31,41,55,.06), 0 1px 2px -1px rgba(31,41,55,.04);">
-
-                {{-- Status code --}}
-                <div style="font-size:4.5rem; font-weight:700; letter-spacing:-0.04em; line-height:1; color:{{ $color ?? '#0D9488' }}; margin-bottom:0.75rem;">
-                    @yield('code')
-                </div>
-
-                {{-- Title --}}
-                <h1 style="font-size:1.25rem; font-weight:700; color:#1F2937; margin-bottom:0.5rem; letter-spacing:-0.025em;">
-                    @yield('title')
-                </h1>
-
-                {{-- Message --}}
-                <p style="font-size:0.9375rem; color:#6B7280; line-height:1.6; margin-bottom:1.75rem;">
-                    @yield('message')
-                </p>
-
-                {{-- Action --}}
-                <div style="display:flex; flex-direction:column; gap:0.75rem; align-items:center;">
-                    <a href="{{ url('/') }}" style="display:inline-flex; align-items:center; justify-content:center; gap:0.5rem; background-color:#0D9488; color:white; font-weight:600; font-size:0.875rem; padding:0.625rem 1.5rem; border-radius:10px; text-decoration:none; transition:background-color 150ms ease, box-shadow 150ms ease;"
-                       onmouseover="this.style.backgroundColor='#0F766E'; this.style.boxShadow='0 4px 14px -2px rgba(13,148,136,.4)';"
-                       onmouseout="this.style.backgroundColor='#0D9488'; this.style.boxShadow='none';">
-                        <svg style="width:16px; height:16px;" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
-                        Go Home
-                    </a>
-
-                    @hasSection('extra-action')
-                        @yield('extra-action')
-                    @endif
-                </div>
+            <div class="relative z-10 float-a">
+                <x-ring :pct="72" :size="200" :stroke="14"><span class="err-code">@yield('code')</span></x-ring>
             </div>
 
-            {{-- Footer --}}
-            <p style="margin-top:2rem; font-size:0.75rem; color:#9CA3AF;">
-                &copy; {{ date('Y') }} {{ config('app.name') }}
-            </p>
-        </div>
+            <h1 class="font-display relative z-10 mt-10 text-4xl md:text-5xl" style="color:#fff;font-weight:400">@yield('title')</h1>
+            <p class="relative z-10 mt-4 max-w-md text-base leading-relaxed" style="color:#9fc3bd">@yield('message')</p>
 
+            <div class="relative z-10 mt-9 flex flex-col items-center gap-4">
+                <a href="{{ url('/') }}" class="btn-teal" style="padding:.9rem 1.8rem;font-weight:600">Go home</a>
+                @hasSection('extra-action')
+                    <div style="color:#7ff0dc;font-size:.9rem">@yield('extra-action')</div>
+                @endif
+            </div>
+        </div>
         @fluxScripts
     </body>
 </html>

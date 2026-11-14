@@ -68,10 +68,7 @@ new #[Title('AI Usage')] class extends Component {
 }; ?>
 
 <div class="flex flex-col gap-6">
-    <div class="flex items-center gap-4">
-        <flux:button variant="ghost" icon="arrow-left" :href="route('teacher.exams.index')" wire:navigate />
-        <flux:heading size="xl">AI Usage</flux:heading>
-    </div>
+    <x-page-header :back="route('teacher.exams.index')" title="AI Usage" />
 
     @if ($this->budgetExceeded)
         <flux:callout variant="danger" icon="exclamation-triangle">
@@ -81,19 +78,10 @@ new #[Title('AI Usage')] class extends Component {
     @endif
 
     {{-- Summary stats --}}
-    <div class="grid grid-cols-3 gap-4">
-        <div class="bento-flat p-5 text-center">
-            <div class="text-3xl font-bold text-teal-700">${{ number_format($this->totalCost, 4) }}</div>
-            <flux:text class="text-sm mt-1">Total Cost (7 days)</flux:text>
-        </div>
-        <div class="bento-flat p-5 text-center">
-            <div class="text-3xl font-bold text-teal-700">{{ number_format($this->dailyUsage->sum('input_tokens') + $this->dailyUsage->sum('output_tokens')) }}</div>
-            <flux:text class="text-sm mt-1">Total Tokens (7 days)</flux:text>
-        </div>
-        <div class="bento-flat p-5 text-center">
-            <div class="text-3xl font-bold text-teal-700">{{ $this->modelBreakdown->count() }}</div>
-            <flux:text class="text-sm mt-1">Models Used</flux:text>
-        </div>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <x-stat label="Total Cost (7 days)" value-class="text-teal-700">${{ number_format($this->totalCost, 4) }}</x-stat>
+        <x-stat label="Total Tokens (7 days)" value-class="text-teal-700">{{ number_format($this->dailyUsage->sum('input_tokens') + $this->dailyUsage->sum('output_tokens')) }}</x-stat>
+        <x-stat label="Models Used" value-class="text-teal-700">{{ $this->modelBreakdown->count() }}</x-stat>
     </div>
 
     {{-- Daily breakdown --}}

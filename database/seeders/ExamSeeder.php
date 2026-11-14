@@ -4,7 +4,9 @@ namespace Database\Seeders;
 
 use App\Enums\QuestionType;
 use App\Models\Attempt;
+use App\Models\Classroom;
 use App\Models\Exam;
+use App\Models\ExamAssignment;
 use App\Models\Question;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -24,7 +26,9 @@ class ExamSeeder extends Seeder
      *   teacher2@quizforge.app  — owns Web Dev & DB exams
      *   student@quizforge.app   — has completed and in-progress attempts
      *   student2@quizforge.app  — has one completed attempt
-     *   student3@quizforge.app  — has not attempted anything yet
+     *   student3@quizforge.app  — has not attempted anything yet, not in any class
+     *
+     * Demo classes (join codes): DEMO2026 (teacher1: Laravel + PHP) and WEBDB2026 (teacher2: Web Dev + DB).
      */
     public function run(): void
     {
@@ -50,8 +54,9 @@ class ExamSeeder extends Seeder
             'email' => 'student2@quizforge.app',
         ]);
 
-        // A student who has not attempted anything — tests the "no history" state
-        User::factory()->student()->create([
+        // A student who has not attempted anything — tests the "no history" state.
+        // Not enrolled anywhere: log in as this student and join a class with code DEMO2026.
+        $student3 = User::factory()->student()->create([
             'name' => 'Torii',
             'email' => 'student3@quizforge.app',
         ]);
@@ -290,6 +295,33 @@ class ExamSeeder extends Seeder
             'answers' => $perfectAnswers,
             'score' => 100,
         ]);
+
+        // ── Classes: students only see the exams assigned to the classes they joined ──
+
+        $classA = Classroom::factory()->for($teacher1, 'teacher')->create([
+            'name' => 'Web Development — L2',
+            'join_code' => 'DEMO2026',
+        ]);
+        $classA->students()->attach([
+            $student1->id => ['joined_at' => now()],
+            $student2->id => ['joined_at' => now()],
+        ]);
+        $laravelSubject = $classA->subjects()->create(['name' => 'Laravel']);
+        $phpSubject = $classA->subjects()->create(['name' => 'PHP']);
+
+        ExamAssignment::create(['exam_id' => $laravelExam->id, 'classroom_id' => $classA->id, 'subject_id' => $laravelSubject->id]);
+        ExamAssignment::create(['exam_id' => $phpExam->id, 'classroom_id' => $classA->id, 'subject_id' => $phpSubject->id]);
+
+        $classB = Classroom::factory()->for($teacher2, 'teacher')->create([
+            'name' => 'Databases & Web — L3',
+            'join_code' => 'WEBDB2026',
+        ]);
+        $classB->students()->attach([$student2->id => ['joined_at' => now()]]);
+        $webSubject = $classB->subjects()->create(['name' => 'Web']);
+        $dbSubject = $classB->subjects()->create(['name' => 'Databases']);
+
+        ExamAssignment::create(['exam_id' => $webExam->id, 'classroom_id' => $classB->id, 'subject_id' => $webSubject->id]);
+        ExamAssignment::create(['exam_id' => $dbExam->id, 'classroom_id' => $classB->id, 'subject_id' => $dbSubject->id]);
     }
 
     /**

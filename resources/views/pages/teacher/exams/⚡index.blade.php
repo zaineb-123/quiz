@@ -100,7 +100,7 @@ new #[Title('My Exams')] class extends Component {
     x-init="initEcho()"
 >
     <div class="flex items-center justify-between">
-        <flux:heading size="xl">My Exams</flux:heading>
+        <h1 class="font-display text-3xl text-charcoal-900 md:text-4xl">My Exams</h1>
         <flux:button variant="primary" icon="plus" :href="route('teacher.exams.create')" wire:navigate>
             New Exam
         </flux:button>
@@ -169,6 +169,20 @@ new #[Title('My Exams')] class extends Component {
                                 icon="chart-bar"
                                 :href="route('teacher.exams.results', $exam)"
                                 wire:navigate
+                            />
+                            <flux:button
+                                size="sm"
+                                variant="ghost"
+                                icon="printer"
+                                :href="route('teacher.exams.pdf', $exam)"
+                                tooltip="Download printable exam (PDF)"
+                            />
+                            <flux:button
+                                size="sm"
+                                variant="ghost"
+                                icon="key"
+                                :href="route('teacher.exams.pdf', ['exam' => $exam, 'key' => 1])"
+                                tooltip="Download answer key (PDF)"
                             />
                             <flux:button
                                 size="sm"

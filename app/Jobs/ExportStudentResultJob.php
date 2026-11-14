@@ -25,7 +25,9 @@ class ExportStudentResultJob implements ShouldQueue
         $correctCount = $this->computeCorrectCount($attempt);
         $totalCount = $attempt->exam->questions->count();
 
-        $pdf = Pdf::loadView('pdf.student-result', compact('attempt', 'correctCount', 'totalCount'));
+        $reveal = $attempt->answersRevealed();
+
+        $pdf = Pdf::loadView('pdf.student-result', compact('attempt', 'correctCount', 'totalCount', 'reveal'));
         $path = 'exports/'.Str::uuid().'-result.pdf';
 
         Storage::disk('local')->put($path, $pdf->output());

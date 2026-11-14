@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => 'anthropic', // Priority: anthropic → gemini → openai → ollama (local dev)
+    'default' => 'ollama', // Priority: anthropic → gemini → openai → ollama (local dev)
     'default_for_images' => 'gemini',
     'default_for_audio' => 'openai',
     'default_for_transcription' => 'openai',
@@ -125,13 +125,13 @@ return [
             'driver' => 'ollama',
             'key' => env('OLLAMA_API_KEY', ''),
             'url' => env('OLLAMA_BASE_URL', 'http://localhost:11434'),
-            'models' => [
-                'text' => [
-                    'default' => env('OLLAMA_MODEL', 'qwen3:8b'),
-                    'cheapest' => env('OLLAMA_MODEL', 'qwen3:8b'),
-                    'smartest' => env('OLLAMA_MODEL_SMART', 'qwen2.5-coder:14b'),
-                ],
-            ],
+                'models' => [
+        'text' => [
+            'default' => env('OLLAMA_MODEL', 'qwen2.5:1.5b'),
+            'cheapest' => env('OLLAMA_MODEL', 'qwen2.5:1.5b'),
+            'smartest' => env('OLLAMA_MODEL_SMART', 'qwen2.5:1.5b'),
+        ],
+    ],
         ],
 
         'openai' => [

@@ -29,10 +29,7 @@ new #[Title('Create Exam')] class extends Component {
 }; ?>
 
 <div class="mx-auto max-w-2xl flex flex-col gap-6">
-        <div class="flex items-center gap-4">
-            <flux:button variant="ghost" icon="arrow-left" :href="route('teacher.exams.index')" wire:navigate />
-            <flux:heading size="xl">Create Exam</flux:heading>
-        </div>
+        <x-page-header :back="route('teacher.exams.index')" title="Create Exam" />
 
         <form wire:submit="save" class="flex flex-col gap-6">
             <flux:field>

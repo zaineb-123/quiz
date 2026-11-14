@@ -108,7 +108,7 @@ new #[Title('Exam Results')] class extends Component {
         <div class="flex items-center gap-4">
             <flux:button variant="ghost" icon="arrow-left" :href="route('teacher.exams.index')" wire:navigate />
             <div>
-                <flux:heading size="xl">{{ $exam->title }}</flux:heading>
+                <h1 class="font-display text-3xl text-charcoal-900 md:text-4xl">{{ $exam->title }}</h1>
                 <flux:text>{{ $this->attempts->count() }} submission(s)</flux:text>
             </div>
         </div>
@@ -126,22 +126,10 @@ new #[Title('Exam Results')] class extends Component {
     </div>
 
     {{-- Summary stats --}}
-    <div class="grid grid-cols-3 gap-4">
-        <div class="bento-flat p-5 text-center">
-            <div class="text-3xl font-bold text-teal-700">{{ $this->attempts->count() }}</div>
-            <flux:text class="text-sm mt-1">Submissions</flux:text>
-        </div>
-        <div class="bento-flat p-5 text-center">
-            <div
-                class="text-3xl font-bold {{ $this->averageScore >= 70 ? 'score-pass' : ($this->averageScore >= 50 ? 'score-warn' : 'score-fail') }}">
-                {{ $this->averageScore }}%
-            </div>
-            <flux:text class="text-sm mt-1">Average Score</flux:text>
-        </div>
-        <div class="bento-flat p-5 text-center">
-            <div class="text-3xl font-bold text-teal-700">{{ $this->passRate }}%</div>
-            <flux:text class="text-sm mt-1">Pass Rate (≥70%)</flux:text>
-        </div>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <x-stat label="Submissions" value-class="text-teal-700">{{ $this->attempts->count() }}</x-stat>
+        <x-stat label="Average Score" value-class="{{ $this->averageScore >= 70 ? 'score-pass' : ($this->averageScore >= 50 ? 'score-warn' : 'score-fail') }}">{{ $this->averageScore }}%</x-stat>
+        <x-stat label="Pass Rate (≥70%)" value-class="text-teal-700">{{ $this->passRate }}%</x-stat>
     </div>
 
     {{-- Struggled Topics --}}

@@ -12,6 +12,7 @@ it('timeRemaining returns zero when exam has no time limit', function () {
     $exam = Exam::factory()->published()->for($teacher)->create(['time_limit' => null]);
     Question::factory()->for($exam)->create();
 
+    giveStudentAccess($student, $exam);
     $component = Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam]);
 
@@ -32,6 +33,7 @@ it('timeRemaining returns correct seconds on mount', function () {
         'completed_at' => null,
     ]);
 
+    giveStudentAccess($student, $exam);
     $component = Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam]);
 
@@ -54,6 +56,7 @@ it('checkTimer does nothing when time has not expired', function () {
         'completed_at' => null,
     ]);
 
+    giveStudentAccess($student, $exam);
     Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam])
         ->call('checkTimer');
@@ -74,6 +77,7 @@ it('checkTimer auto-submits and marks attempt completed when time has expired', 
         'completed_at' => null,
     ]);
 
+    giveStudentAccess($student, $exam);
     Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam])
         ->call('checkTimer');
@@ -97,6 +101,7 @@ it('auto-submit produces a valid score and sets completed_at', function () {
         'answers' => [$q1->id => 'Paris'], // answered 1 of 2 before time ran out
     ]);
 
+    giveStudentAccess($student, $exam);
     Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam])
         ->call('checkTimer');
@@ -115,6 +120,7 @@ it('submitExam is idempotent — double submit redirects without re-grading', fu
     Question::factory()->for($exam)->create(['correct_answer' => 'Paris']);
 
     // First submit — creates and completes the attempt via the component
+    giveStudentAccess($student, $exam);
     $component = Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam])
         ->call('submitExam');

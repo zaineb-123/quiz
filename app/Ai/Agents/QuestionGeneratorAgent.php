@@ -13,9 +13,9 @@ use Laravel\Ai\Contracts\HasStructuredOutput;
 use Laravel\Ai\Promptable;
 use Stringable;
 
-#[Model('claude-sonnet-4-6')]
-#[MaxTokens(8192)]
-#[Temperature(0.7)]
+#[Model('qwen2.5:1.5b')]
+#[MaxTokens(2048)]
+#[Temperature(0.2)]
 #[Timeout(180)]
 class QuestionGeneratorAgent implements Agent, HasStructuredOutput
 {
@@ -53,14 +53,19 @@ class QuestionGeneratorAgent implements Agent, HasStructuredOutput
         Generate exactly {$this->count} {$typeLabel} question(s) about the topic: "{$this->topic}".
         Difficulty level: {$difficultyLabel}.
 
-        Rules:
+               Rules:
+        - Write all questions, answers, and explanations in French.
+        - Use scientifically accurate SVT knowledge.
         - Each question must be clear, unambiguous, and test genuine understanding.
-        - The correct_answer must match one of the options exactly (case-sensitive) for multiple choice and true/false.
+        - The correct_answer must match one of the options exactly for multiple choice and true/false.
         - Never embed the correct answer in the question text itself.
-        - The explanation should clarify why the correct answer is right.
+        - Keep explanations concise (2 to 3 sentences maximum).
+        - Avoid repeating the same information.
+        - Do not invent scientific facts.
         - Difficulty must be {$this->difficulty} (1=easiest, 5=hardest).
         - {$optionsNote}
-        - Respond ONLY with the JSON schema. No extra text.
+        - Return exactly {$this->count} questions.
+        - Respond ONLY with valid JSON matching the required schema.
         INSTRUCTIONS;
     }
 

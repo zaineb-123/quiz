@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\AttemptPdfController;
+use App\Http\Controllers\ClassroomReportController;
+use App\Http\Controllers\ExamSheetPdfController;
 use App\Http\Controllers\PdfDownloadController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,6 +27,14 @@ Route::middleware(['auth', 'verified', 'role:teacher'])
         Route::livewire('/exams/{exam}/results', 'pages::teacher.exams.results')->name('exams.results');
         Route::livewire('/questions', 'pages::teacher.question-bank')->name('questions.index');
         Route::livewire('/ai-usage', 'pages::teacher.ai-usage')->name('ai-usage');
+
+        // Printable exam sheet (blank) or answer key (?key=1)
+        Route::get('/exams/{exam}/pdf', ExamSheetPdfController::class)->name('exams.pdf');
+
+        // Classrooms: join code, subjects, assigned exams, per-student progress
+        Route::livewire('/classrooms', 'pages::teacher.classrooms.index')->name('classrooms.index');
+        Route::livewire('/classrooms/{classroom}', 'pages::teacher.classrooms.show')->name('classrooms.show');
+        Route::get('/classrooms/{classroom}/report', ClassroomReportController::class)->name('classrooms.report');
     });
 
 // Student routes
@@ -36,6 +47,11 @@ Route::middleware(['auth', 'verified', 'role:student'])
         Route::livewire('/attempts/{attempt}/results', 'pages::student.exam-results')->name('attempts.results');
         Route::livewire('/attempts', 'pages::student.attempts')->name('attempts');
         Route::livewire('/exams/{exam}/leaderboard', 'pages::student.leaderboard')->name('exams.leaderboard');
+        Route::get('/attempts/{attempt}/pdf', AttemptPdfController::class)->name('attempts.pdf');
+
+        // Classrooms: join with a code, then see only that class's subjects and exams
+        Route::livewire('/classrooms', 'pages::student.classrooms')->name('classrooms');
+        Route::livewire('/classrooms/{classroom}', 'pages::student.classroom')->name('classrooms.show');
     });
 
 // PDF export download (signed URL — auth not required, signature acts as the token)

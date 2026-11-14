@@ -1,0 +1,16 @@
+[90m= [39m[34;4mApp\Models\User[39;24m {#6708
+    [34mid[39m: [35m1[39m,
+    [34mname[39m: "[32mzaineb[39m",
+    [34memail[39m: "[32mteacher@quizforge.app[39m",
+    [34memail_verified_at[39m: "[32m2026-10-13 20:54:44[39m",
+    #[33mpassword[39m: "[32m$2y$12$9a2pE6OBMFCInjbx2vIPaOYjZahi4jt3Lho.rKYzrD3s71CiR9/Gq[39m",
+    #[33mremember_token[39m: "[32m71u4jc32SUuBFvmOj6Gq40lFhsw79MspxcTJR6PM03Y4Q9B2jJUNtohHn6on[39m",
+    [34mcreated_at[39m: "[32m2026-10-13 20:54:44[39m",
+    [34mupdated_at[39m: "[32m2026-10-13 21:03:45[39m",
+    [34mdeleted_at[39m: [36mnull[39m,
+    #[33mtwo_factor_secret[39m: [36mnull[39m,
+    #[33mtwo_factor_recovery_codes[39m: [36mnull[39m,
+    [34mtwo_factor_confirmed_at[39m: [36mnull[39m,
+    [34mrole[39m: "[32mteacher[39m",
+  }
+

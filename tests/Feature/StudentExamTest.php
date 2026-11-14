@@ -28,8 +28,10 @@ it('dashboard shows only published exams', function () {
     $student = User::factory()->student()->create();
     $teacher = User::factory()->teacher()->create();
 
-    Exam::factory()->published()->for($teacher)->create(['title' => 'Published Exam']);
-    Exam::factory()->draft()->for($teacher)->create(['title' => 'Draft Exam']);
+    $published = Exam::factory()->published()->for($teacher)->create(['title' => 'Published Exam']);
+    $draft = Exam::factory()->draft()->for($teacher)->create(['title' => 'Draft Exam']);
+    giveStudentAccess($student, $published);
+    giveStudentAccess($student, $draft);
 
     Livewire::actingAs($student)
         ->test('pages::student.dashboard')
@@ -44,6 +46,7 @@ it('student can visit a published exam', function () {
     $teacher = User::factory()->teacher()->create();
     $exam = Exam::factory()->published()->for($teacher)->has(Question::factory()->count(2), 'questions')->create();
 
+    giveStudentAccess($student, $exam);
     $this->actingAs($student)
         ->get(route('student.exams.take', $exam))
         ->assertOk();
@@ -54,6 +57,7 @@ it('creates attempt when student visits exam', function () {
     $teacher = User::factory()->teacher()->create();
     $exam = Exam::factory()->published()->for($teacher)->create();
 
+    giveStudentAccess($student, $exam);
     Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam]);
 
@@ -71,6 +75,7 @@ it('resumes existing incomplete attempt', function () {
         'started_at' => now()->subMinutes(5),
     ]);
 
+    giveStudentAccess($student, $exam);
     Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam]);
 
@@ -83,6 +88,7 @@ it('returns 404 for unpublished exam', function () {
     $teacher = User::factory()->teacher()->create();
     $exam = Exam::factory()->draft()->for($teacher)->create();
 
+    giveStudentAccess($student, $exam);
     $this->actingAs($student)
         ->get(route('student.exams.take', $exam))
         ->assertNotFound();
@@ -98,6 +104,7 @@ it('student gets 100% when all answers are correct', function () {
     $q1 = Question::factory()->for($exam)->create(['correct_answer' => 'Paris', 'options' => ['Paris', 'London']]);
     $q2 = Question::factory()->for($exam)->create(['correct_answer' => 'Blue', 'options' => ['Red', 'Blue']]);
 
+    giveStudentAccess($student, $exam);
     Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam])
         ->set("answers.{$q1->id}", 'Paris')
@@ -118,6 +125,7 @@ it('calculates partial score correctly', function () {
     $q1 = Question::factory()->for($exam)->create(['correct_answer' => 'Paris', 'options' => ['Paris', 'London']]);
     $q2 = Question::factory()->for($exam)->create(['correct_answer' => 'Blue', 'options' => ['Red', 'Blue']]);
 
+    giveStudentAccess($student, $exam);
     Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam])
         ->set("answers.{$q1->id}", 'Paris')
@@ -133,6 +141,7 @@ it('submit redirects to results page', function () {
     $teacher = User::factory()->teacher()->create();
     $exam = Exam::factory()->published()->for($teacher)->create();
 
+    giveStudentAccess($student, $exam);
     Livewire::actingAs($student)
         ->test('pages::student.take-exam', ['exam' => $exam])
         ->call('submitExam')

@@ -415,7 +415,7 @@ new #[Title('Manage Questions')] class extends Component {
         <div class="flex items-center gap-4">
             <flux:button variant="ghost" icon="arrow-left" :href="route('teacher.exams.index')" wire:navigate />
             <div>
-                <flux:heading size="xl">{{ $exam->title }}</flux:heading>
+                <h1 class="font-display text-3xl text-charcoal-900 md:text-4xl">{{ $exam->title }}</h1>
                 <flux:text>{{ $this->questions->count() }} question(s)</flux:text>
             </div>
         </div>
@@ -762,7 +762,7 @@ new #[Title('Manage Questions')] class extends Component {
                 </div>
             </div>
         @empty
-            <div class="rounded-xl border border-dashed p-10 text-center" style="border-color:var(--color-border-hover)">
+            <div class="empty-state rounded-xl border border-dashed p-10 text-center" style="border-color:var(--color-border-hover)">
                 <flux:text>No questions yet. Add your first question above.</flux:text>
             </div>
         @endforelse

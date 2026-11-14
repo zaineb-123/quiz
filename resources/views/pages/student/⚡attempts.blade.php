@@ -44,7 +44,7 @@ new #[Title('My Attempts')] class extends Component {
 
 <div class="flex flex-col gap-6">
     <div class="flex items-center justify-between">
-        <flux:heading size="xl">My Attempts</flux:heading>
+        <h1 class="font-display text-3xl text-charcoal-900 md:text-4xl">My Attempts</h1>
         <flux:button variant="ghost" icon="arrow-left" :href="route('student.dashboard')" wire:navigate>
             Dashboard
         </flux:button>
@@ -87,9 +87,7 @@ new #[Title('My Attempts')] class extends Component {
                 <flux:table.row :key="$attempt->id">
                     <flux:table.cell variant="strong">{{ $attempt->exam->title }}</flux:table.cell>
                     <flux:table.cell>
-                        <span class="{{ $attempt->score >= 70 ? 'score-pass' : ($attempt->score >= 50 ? 'score-warn' : 'score-fail') }} font-bold">
-                            {{ $attempt->score }}%
-                        </span>
+                        <x-ring :pct="$attempt->score" :size="46" :stroke="5" track="#e8f0ee" :glow="false"><span class="text-[11px] font-semibold text-charcoal-900">{{ $attempt->score }}</span></x-ring>
                     </flux:table.cell>
                     <flux:table.cell>
                         <flux:badge

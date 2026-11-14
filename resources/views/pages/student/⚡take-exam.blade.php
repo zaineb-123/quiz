@@ -47,6 +47,9 @@ new #[Title('Take Exam')] class extends Component {
             abort_unless(auth()->id() === $this->exam->user_id, 403);
         } else {
             abort_unless($this->exam->isPublished(), 404);
+
+            // The exam must be assigned to a class the student joined, inside its open window
+            abort_unless($this->exam->isOpenFor(auth()->user()), 403);
         }
 
         if (! $this->isPreview) {
@@ -302,253 +305,183 @@ new #[Title('Take Exam')] class extends Component {
     }
 }; ?>
 
-<div class="mx-auto max-w-3xl flex flex-col gap-6">
-    @if ($isPreview)
-        <flux:callout variant="warning" icon="eye">
-            <flux:callout.heading>Preview Mode</flux:callout.heading>
-            <flux:callout.text>You are previewing this exam as a teacher. Answers cannot be submitted.</flux:callout.text>
-            <x-slot name="actions">
-                <flux:button
-                    size="sm"
-                    variant="ghost"
-                    :href="route('teacher.exams.questions', $exam)"
-                    wire:navigate
-                >
-                    End Preview
-                </flux:button>
-            </x-slot>
-        </flux:callout>
-    @endif
+@php
+    $total = $this->questions->count();
+    $limit = ($exam->time_limit ?? 0) * 60;
+    $ids = $this->questions->pluck('id')->implode(',');
+    $exitUrl = $isPreview ? route('teacher.exams.questions', $exam) : route('student.dashboard');
+@endphp
 
-    <div class="flex items-center justify-between">
-        <div>
-            <flux:heading size="xl">{{ $exam->title }}</flux:heading>
-            <div class="flex items-center gap-3 mt-1">
-                <flux:text>{{ $this->questions->count() }} questions</flux:text>
-                @if ($exam->time_limit)
-                    <flux:text>• {{ $exam->time_limit }} minute limit</flux:text>
-                @endif
+{{-- Focus mode: one question at a time, all answers stay in the same Livewire form. --}}
+<form wire:submit="submitExam" class="focus-stage"
+    x-data="{
+        i: 0, total: {{ $total }}, ids: [{{ $ids }}],
+        secs: {{ $this->timeRemaining }}, limit: {{ $limit }}, expired: false, _t: null,
+        get min() { return Math.floor(this.secs / 60) },
+        get sec() { return String(this.secs % 60).padStart(2, '0') },
+        get warn() { return this.limit > 0 && this.secs <= 300 && this.secs > 60 },
+        get danger() { return this.limit > 0 && this.secs <= 60 && !this.expired },
+        get frac() { return this.limit ? Math.max(0, this.secs / this.limit) : 1 },
+        go(n) { this.i = Math.max(0, Math.min(this.total - 1, n)) },
+        pick(n) { const r = this.$refs['q' + this.i]?.querySelectorAll('input[type=radio]'); if (r && r[n]) r[n].click() },
+        dot(id, idx) { const a = this.$wire.answers?.[id]; return { cur: idx === this.i, flag: !!a?.flagged && idx !== this.i, ans: !!a?.value && !a?.flagged && idx !== this.i } },
+        answered() { return this.ids.filter(id => !!this.$wire.answers?.[id]?.value).length },
+        key(e) {
+            const t = e.target;
+            if (t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && t.type !== 'radio')) return;
+            if (e.metaKey || e.ctrlKey || e.altKey) return;
+            const k = e.key.toLowerCase();
+            if (k.length === 1 && 'abcd'.includes(k)) { this.pick('abcd'.indexOf(k)) }
+            else if (e.key === 'ArrowRight') { e.preventDefault(); this.go(this.i + 1) }
+            else if (e.key === 'ArrowLeft') { e.preventDefault(); this.go(this.i - 1) }
+        },
+        init() {
+            document.body.style.overflow = 'hidden';
+            if (this.limit > 0) {
+                if (this.secs <= 0) { this.expired = true; this.$wire.checkTimer(); return }
+                this._t = setInterval(() => {
+                    if (this.secs > 0) { this.secs-- }
+                    else { clearInterval(this._t); this.expired = true; this.$wire.checkTimer() }
+                }, 1000);
+            }
+        },
+        destroy() { clearInterval(this._t); document.body.style.overflow = '' }
+    }"
+    @keydown.window="key($event)">
+
+    {{-- ── Top bar ── --}}
+    <div class="focus-top">
+        <a href="{{ $exitUrl }}" wire:navigate class="f-pill"><flux:icon.arrow-left class="size-4" /> Exit</a>
+
+        <div class="min-w-0 text-center">
+            <div class="truncate text-[15px] font-semibold text-white">{{ $exam->title }}</div>
+            <div class="text-xs" style="color:#6f9a94">
+                <span x-text="answered()"></span> of {{ $total }} answered
             </div>
         </div>
-        <flux:button variant="ghost" :href="route('student.dashboard')" wire:navigate>Exit</flux:button>
-    </div>
 
-    {{-- ── Countdown Timer ── --}}
-    @if ($exam->time_limit)
-        <div
-            x-data="{
-                seconds: {{ $this->timeRemaining }},
-                expired: false,
-                get minutes() { return Math.floor(this.seconds / 60) },
-                get secs()    { return String(this.seconds % 60).padStart(2, '0') },
-                get isWarning() { return this.seconds <= 300 && this.seconds > 60 },
-                get isDanger()  { return this.seconds <= 60 && !this.expired },
-                init() {
-                    if (this.seconds <= 0) { this.expired = true; $wire.checkTimer(); return; }
-                    const tick = setInterval(() => {
-                        if (this.seconds > 0) { this.seconds--; }
-                        else { clearInterval(tick); this.expired = true; $wire.checkTimer(); }
-                    }, 1000);
-                }
-            }"
-            class="bento-flat py-3 px-4 flex items-center justify-between transition-colors duration-300"
-            :class="{
-                'border-amber-300 bg-amber-50': isWarning,
-                'border-red-300 bg-red-50 animate-pulse': isDanger,
-                'border-red-400 bg-red-100': expired
-            }"
-        >
-            <div class="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="size-4 shrink-0"
-                    :class="{ 'text-amber-600': isWarning, 'text-red-600': isDanger || expired, 'text-charcoal-600': !isWarning && !isDanger && !expired }"
-                    fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                </svg>
-                <span class="text-sm font-medium"
-                    :class="{ 'text-amber-800': isWarning, 'text-red-800': isDanger || expired, 'text-charcoal-600': !isWarning && !isDanger && !expired }"
-                    x-text="expired ? 'Time\'s up — submitting…' : 'Time Remaining'"></span>
-            </div>
-            <span class="font-mono text-lg font-bold tabular-nums"
-                :class="{ 'text-amber-700': isWarning, 'text-red-700': isDanger || expired, 'text-charcoal-900': !isWarning && !isDanger && !expired }"
-                x-text="expired ? '0:00' : `${minutes}:${secs}`"></span>
-        </div>
-
-        <div x-data="{ seconds: {{ $this->timeRemaining }} }" x-init="setInterval(() => { if (seconds > 0) seconds-- }, 1000)"
-            x-show="seconds <= 300 && seconds > 60" x-cloak
-            class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="size-4 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-            </svg>
-            <strong>5 minutes remaining</strong> — please start wrapping up.
-        </div>
-
-        <div x-data="{ seconds: {{ $this->timeRemaining }} }" x-init="setInterval(() => { if (seconds > 0) seconds-- }, 1000)"
-            x-show="seconds <= 60 && seconds > 0" x-cloak
-            class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="size-4 shrink-0 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-            </svg>
-            <strong>Less than 1 minute remaining!</strong> Your exam will be submitted automatically.
-        </div>
-    @endif
-
-    @if ($exam->description)
-        <flux:callout icon="information-circle">{{ $exam->description }}</flux:callout>
-    @endif
-
-    {{-- ── Filter tabs ── --}}
-    <div class="flex items-center gap-1 border-b border-gray-200">
-        <button
-            wire:click="$set('filter', 'all')"
-            class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px"
-            :class="'{{ $filter }}' === 'all'
-                ? 'border-teal-600 text-teal-700'
-                : 'border-transparent text-charcoal-600 hover:text-charcoal-900'"
-        >
-            All Questions
-            <span class="ml-1.5 inline-flex items-center justify-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-charcoal-600">
-                {{ $this->questions->count() }}
-            </span>
-        </button>
-        <button
-            wire:click="$set('filter', 'flagged')"
-            class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5"
-            :class="'{{ $filter }}' === 'flagged'
-                ? 'border-teal-600 text-teal-700'
-                : 'border-transparent text-charcoal-600 hover:text-charcoal-900'"
-        >
-            <svg xmlns="http://www.w3.org/2000/svg" class="size-3.5" fill="{{ $this->flaggedCount > 0 ? 'currentColor' : 'none' }}" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
-            </svg>
-            Review Later
-            @if ($this->flaggedCount > 0)
-                <span class="inline-flex items-center justify-center rounded-full bg-teal-100 px-2 py-0.5 text-xs font-semibold text-teal-700">
-                    {{ $this->flaggedCount }}
-                </span>
-            @endif
-        </button>
-    </div>
-
-    {{-- ── Empty state for flagged filter ── --}}
-    @if ($filter === 'flagged' && $this->flaggedCount === 0)
-        <div class="bento-flat text-center py-10 space-y-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="size-8 mx-auto text-charcoal-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
-            </svg>
-            <flux:text>No questions flagged for review yet.</flux:text>
-            <flux:text class="text-sm">Click the bookmark icon on any question to flag it.</flux:text>
-        </div>
-    @endif
-
-    <form wire:submit="submitExam" class="space-y-4">
-        @foreach ($this->filteredQuestions as $index => $question)
-            @php $isFlagged = $answers[$question->id]['flagged'] ?? false; @endphp
-            <div
-                class="bento-flat space-y-4 transition-colors duration-150"
-                style="{{ $isFlagged ? 'border-color: #5EEAD4; background-color: #F0FDFA;' : '' }}"
-                wire:key="q-{{ $question->id }}"
-            >
-                <div style="display:flex; align-items:flex-start; gap:.75rem;">
-                    <span style="display:inline-flex; align-items:center; justify-content:center; min-width:1.75rem; height:1.75rem; border-radius:8px; background:#F0FDFA; color:#0F766E; font-size:.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">
-                        {{ $loop->index + 1 }}
-                    </span>
-                    <flux:heading style="flex:1; padding-top:2px;">{{ $question->question }}</flux:heading>
-
-                    {{-- Bookmark / flag button --}}
-                    <button
-                        type="button"
-                        wire:click="toggleFlag({{ $question->id }})"
-                        wire:loading.attr="disabled"
-                        wire:target="toggleFlag({{ $question->id }})"
-                        title="{{ $isFlagged ? 'Remove flag' : 'Flag for review' }}"
-                        class="shrink-0 mt-0.5 p-1 rounded-md transition-colors {{ $isFlagged ? 'text-teal-600 hover:text-teal-800' : 'text-charcoal-400 hover:text-charcoal-700' }}"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="{{ $isFlagged ? 'currentColor' : 'none' }}" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
-                        </svg>
-                    </button>
+        @if ($limit > 0)
+            <div class="flex items-center gap-3">
+                <div class="text-right">
+                    <div class="text-xl font-bold tabular-nums text-white" :class="{ 'f-warn': danger }" x-text="expired ? '0:00' : `${min}:${sec}`">{{ floor($this->timeRemaining / 60) }}:{{ str_pad($this->timeRemaining % 60, 2, '0', STR_PAD_LEFT) }}</div>
+                    <div class="text-xs" style="color:#6f9a94" x-text="expired ? 'Submitting…' : 'time left'">time left</div>
                 </div>
+                <svg width="52" height="52" viewBox="0 0 52 52" style="transform:rotate(-90deg)">
+                    <circle cx="26" cy="26" r="23" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6"/>
+                    <circle cx="26" cy="26" r="23" fill="none" stroke-width="6" stroke-linecap="round" stroke-dasharray="144.51"
+                        :stroke-dashoffset="144.51 * (1 - frac)" :stroke="danger || expired ? '#ff6b6b' : (warn ? '#fbbf24' : '#5eead4')"
+                        style="transition:stroke-dashoffset 1s linear, stroke .4s"/>
+                </svg>
+            </div>
+        @else
+            <div class="text-xs" style="color:#6f9a94">No time limit</div>
+        @endif
+    </div>
 
-                @if ($question->options)
-                    <div class="space-y-2 pt-1">
-                        @foreach ($question->options as $option)
-                            <label class="quiz-option" wire:key="opt-{{ $question->id }}-{{ $loop->index }}">
-                                <input
-                                    type="radio"
-                                    wire:model="answers.{{ $question->id }}.value"
-                                    value="{{ $option }}"
-                                />
-                                <span>{{ $option }}</span>
-                            </label>
-                        @endforeach
+    <div class="focus-wrap">
+        @if ($isPreview)
+            <div class="mb-4 text-center"><span class="f-chip" style="background:rgba(251,191,36,.14);color:#fcd34d;border-color:rgba(251,191,36,.35)"><flux:icon.eye class="size-4" /> Preview mode. Submission is disabled.</span></div>
+        @endif
+
+        <div x-show="warn || danger" x-cloak x-transition class="mb-4 text-center">
+            <span class="f-chip" :style="danger ? '' : 'background:rgba(251,191,36,.14);color:#fcd34d;border-color:rgba(251,191,36,.35)'">
+                <flux:icon.exclamation-triangle class="size-4" />
+                <span x-text="danger ? 'Less than a minute left. Your exam will be submitted automatically.' : '5 minutes left. Start wrapping up.'"></span>
+            </span>
+        </div>
+
+        @if ($total === 0)
+            <div class="py-24 text-center"><p class="f-q">This exam has no questions yet.</p><a href="{{ $exitUrl }}" wire:navigate class="f-pill">Go back</a></div>
+        @else
+            {{-- Segmented progress --}}
+            <div class="f-segs">
+                <template x-for="n in total" :key="n"><div class="f-seg" :class="{ done: n - 1 < i, cur: n - 1 === i }"></div></template>
+            </div>
+
+            @foreach ($this->questions as $question)
+                @php
+                    $qid = $question->id;
+                    $isFlagged = $answers[$qid]['flagged'] ?? false;
+                @endphp
+                <section wire:key="q-{{ $qid }}" x-show="i === {{ $loop->index }}" x-cloak x-ref="q{{ $loop->index }}"
+                    x-effect="if (i === {{ $loop->index }}) $nextTick(() => $el.querySelector('input[type=text]')?.focus({ preventScroll: true }))"
+                    x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
+
+                    <div class="mt-5 flex items-center justify-between text-sm" style="color:#7fa9a3">
+                        <span>Question {{ $loop->iteration }} of {{ $total }}</span>
+                        <button type="button" wire:click="toggleFlag({{ $qid }})" wire:loading.attr="disabled" wire:target="toggleFlag({{ $qid }})"
+                            class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 transition-colors hover:bg-white/10"
+                            style="color:{{ $isFlagged ? '#ff9494' : '#7fa9a3' }}" title="{{ $isFlagged ? 'Remove flag' : 'Flag for review' }}">
+                            <svg class="size-4" viewBox="0 0 24 24" fill="{{ $isFlagged ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg>
+                            {{ $isFlagged ? 'Flagged' : 'Flag for later' }}
+                        </button>
                     </div>
-                @else
-                    <flux:input
-                        wire:model="answers.{{ $question->id }}.value"
-                        placeholder="Type your answer…"
-                    />
 
-                    {{-- Hint section for short-answer questions --}}
-                    <div
-                        x-data="{ showHint: {{ isset($hints[$question->id]) ? 'true' : 'false' }}, loading: false }"
-                        class="space-y-2"
-                    >
-                        <div class="flex justify-end">
-                            <flux:button
-                                size="sm"
-                                variant="ghost"
-                                x-bind:disabled="loading"
-                                x-on:click="loading = true; showHint = true; $wire.streamHint({{ $question->id }}).then(() => loading = false)"
-                                :loading="false"
-                            >
-                                <span x-show="!loading" class="inline-flex items-center gap-1">
-                                    <flux:icon.light-bulb class="size-4" />
-                                    Get a Hint
-                                </span>
-                                <span x-show="loading" x-cloak class="inline-flex items-center gap-1">
-                                    <svg class="animate-spin size-3.5" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-                                    Thinking…
-                                </span>
-                            </flux:button>
+                    <h1 class="f-q">{{ $question->question }}</h1>
+
+                    @if ($question->options)
+                        <div>
+                            @foreach ($question->options as $option)
+                                <label class="f-opt" wire:key="opt-{{ $qid }}-{{ $loop->index }}">
+                                    <input type="radio" class="sr-only" wire:model="answers.{{ $qid }}.value" value="{{ $option }}" />
+                                    <span class="f-key">{{ chr(65 + $loop->index) }}</span>
+                                    <span>{{ $option }}</span>
+                                    <svg class="f-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                                </label>
+                            @endforeach
                         </div>
+                        <p class="mt-5 hidden text-[13px] md:block" style="color:#5f8680">Press A to D to answer, and the arrow keys to move between questions.</p>
+                    @else
+                        <input type="text" class="f-input" wire:model="answers.{{ $qid }}.value" placeholder="Type your answer" autocomplete="off" @keydown.enter.prevent="go(i + 1)" />
 
-                        <div
-                            x-show="showHint"
-                            style="display: none"
-                            class="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800"
-                        >
-                            <div class="flex items-start gap-2">
-                                <flux:icon.light-bulb class="size-4 mt-0.5 shrink-0 text-amber-600" />
-                                <span wire:stream="hint-{{ $question->id }}">{{ $hints[$question->id] ?? '' }}</span>
+                        <div x-data="{ showHint: {{ isset($hints[$qid]) ? 'true' : 'false' }}, loading: false }" class="mt-5 space-y-3">
+                            <button type="button" class="f-chip" x-bind:disabled="loading"
+                                x-on:click="loading = true; showHint = true; $wire.streamHint({{ $qid }}).then(() => loading = false)">
+                                <flux:icon.sparkles class="size-4" />
+                                <span x-show="!loading">Need a nudge? Get a hint</span>
+                                <span x-show="loading" x-cloak>Thinking…</span>
+                            </button>
+                            <div x-show="showHint" x-cloak x-transition class="f-hint">
+                                <span wire:stream="hint-{{ $qid }}">{{ $hints[$qid] ?? '' }}</span>
                             </div>
                         </div>
-                    </div>
-                @endif
-            </div>
-        @endforeach
+                    @endif
+                </section>
+            @endforeach
+        @endif
+    </div>
 
-        <div class="flex justify-end gap-3 pt-2 pb-4">
-            @if ($isPreview)
-                <flux:callout variant="warning" icon="eye" class="w-full">
-                    <flux:callout.text>Preview mode — submission is disabled.</flux:callout.text>
-                </flux:callout>
-            @else
-                <flux:button
-                    variant="primary"
-                    type="submit"
-                    wire:loading.attr="disabled"
-                    wire:target="submitExam"
-                >
-                    <span wire:loading.remove wire:target="submitExam" class="inline-flex items-center gap-1">
-                        <flux:icon.check class="size-4" />
-                        Submit Exam
-                    </span>
-                    <span wire:loading wire:target="submitExam" class="inline-flex items-center gap-1">
-                        <svg class="animate-spin size-4" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-                        Grading…
-                    </span>
-                </flux:button>
-            @endif
+    {{-- ── Footer: previous · question map · next / submit ── --}}
+    @if ($total > 0)
+        <div class="f-foot">
+            <button type="button" class="f-pill" @click="go(i - 1)" :class="{ 'pointer-events-none opacity-30': i === 0 }">
+                <flux:icon.arrow-left class="size-4" /> <span class="hidden sm:inline">Previous</span>
+            </button>
+
+            <div class="f-dots hidden md:flex">
+                @foreach ($this->questions as $q)
+                    <button type="button" class="f-dot" :class="dot({{ $q->id }}, {{ $loop->index }})" @click="go({{ $loop->index }})" title="Question {{ $loop->iteration }}"></button>
+                @endforeach
+            </div>
+
+            <div>
+                <button type="button" x-show="i < total - 1" @click="go(i + 1)" class="btn-teal" style="padding:.95rem 1.8rem;font-size:1rem">
+                    Next question <flux:icon.arrow-right class="size-[18px]" />
+                </button>
+                <div x-show="i === total - 1" x-cloak>
+                    @if ($isPreview)
+                        <span class="f-pill">Preview only</span>
+                    @else
+                        <button type="submit" class="btn-teal" style="padding:.95rem 1.8rem;font-size:1rem" wire:loading.attr="disabled" wire:target="submitExam">
+                            <span wire:loading.remove wire:target="submitExam" class="inline-flex items-center gap-2"><flux:icon.check class="size-[18px]" /> Submit exam</span>
+                            <span wire:loading wire:target="submitExam" class="inline-flex items-center gap-2">
+                                <svg class="size-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                                Grading…
+                            </span>
+                        </button>
+                    @endif
+                </div>
+            </div>
         </div>
-    </form>
-</div>
+    @endif
+</form>

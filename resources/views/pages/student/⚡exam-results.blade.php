@@ -63,6 +63,13 @@ new #[Title('Exam Results')] class extends Component {
         return $this->attempt->exam->questions->count();
     }
 
+    /** False while the teacher is still holding back correct answers (see ExamAssignment::reveal_answers_at). */
+    #[Computed]
+    public function answersRevealed(): bool
+    {
+        return $this->attempt->answersRevealed();
+    }
+
     public function requestExport(): void
     {
         ExportStudentResultJob::dispatch($this->attempt->id);
@@ -111,8 +118,14 @@ new #[Title('Exam Results')] class extends Component {
         $query = implode(' ', array_slice($incorrectTexts, 0, 3));
 
         try {
+            $student = auth()->user();
+
             return app(QuestionSimilarityService::class)
-                ->findSimilar($query, limit: 5, excludeExamId: $this->attempt->exam_id);
+                ->findSimilar($query, limit: 15, excludeExamId: $this->attempt->exam_id)
+                ->load('exam')
+                ->filter(fn ($question) => $question->exam && $question->exam->isOpenFor($student))
+                ->take(5)
+                ->values();
         } catch (\Throwable $e) {
             logger()->warning('Recommendations unavailable', ['error' => $e->getMessage()]);
 
@@ -121,25 +134,50 @@ new #[Title('Exam Results')] class extends Component {
     }
 }; ?>
 
+@php
+    $first = \Illuminate\Support\Str::of(auth()->user()->name)->before(' ');
+    $score = (int) $attempt->score;
+    $headline = $score >= 85 ? "Outstanding work, {$first}." : ($score >= 70 ? "Strong work, {$first}." : ($score >= 50 ? "Good effort, {$first}." : 'This one was tough.'));
+    $sub = $score >= 70 ? 'You passed. Here is how it broke down.' : ($score >= 50 ? 'Close. Review the questions below and close the gaps.' : 'Review the answers below, then try again when you are ready.');
+    $secs = ($attempt->started_at && $attempt->completed_at) ? (int) $attempt->started_at->diffInSeconds($attempt->completed_at, absolute: true) : null;
+    $took = $secs === null ? '—' : ($secs >= 3600 ? gmdate('G:i:s', $secs) : gmdate('i:s', $secs));
+@endphp
+
 <div class="mx-auto max-w-3xl flex flex-col gap-6">
-    <div class="flex items-center gap-4">
-        <flux:button variant="ghost" icon="arrow-left" :href="route('student.dashboard')" wire:navigate />
-        <flux:heading size="xl">Results: {{ $attempt->exam->title }}</flux:heading>
+    <div class="flex items-center justify-between gap-3">
+        <a href="{{ route('student.dashboard') }}" wire:navigate class="btn-line"><flux:icon.arrow-left class="size-4" /> Dashboard</a>
+        <span class="truncate text-sm" style="color:#5d7270">{{ $attempt->exam->title }}</span>
     </div>
 
-    {{-- Score Card --}}
-    <div class="bento-flat p-8 text-center space-y-3">
-        <div
-            class="text-6xl font-bold {{ $attempt->score >= 70 ? 'score-pass' : ($attempt->score >= 50 ? 'score-warn' : 'score-fail') }}">
-            {{ $attempt->score }}%
+    {{-- Score hero --}}
+    <div class="hero-ink p-8 text-center md:p-12" x-data x-init="{{ $score >= 70 ? 'window.qfConfetti($el)' : '' }}">
+        <div class="relative z-10 flex flex-col items-center">
+            <x-ring :pct="$score" :size="240" :stroke="18">
+                <div class="font-display leading-none" style="color:#fff;font-size:5.5rem"><x-count-up :to="$score" /><span style="font-size:2.2rem;color:#8fb3ad">%</span></div>
+            </x-ring>
+            <span class="mt-6 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium"
+                  style="background:{{ $score >= 70 ? 'rgba(94,234,212,.16);color:#7ff0dc' : ($score >= 50 ? 'rgba(251,191,36,.16);color:#fcd34d' : 'rgba(255,148,148,.16);color:#ffb4b4') }}">
+                {{ $score >= 70 ? 'Passed' : ($score >= 50 ? 'Needs improvement' : 'Not passed') }}
+            </span>
+            <h1 class="font-display mt-4 text-4xl md:text-5xl" style="color:#fff">{{ $headline }}</h1>
+            <p class="mt-2 text-[15px]" style="color:#9fc3bd">{{ $sub }}</p>
+            <div class="mt-8 grid w-full max-w-md grid-cols-3 gap-3">
+                @foreach ([[$this->correctCount.'/'.$this->totalCount, 'Correct'], [$took, 'Time taken'], [$score.'%', 'Score']] as [$v, $l])
+                    <div class="rounded-2xl px-3 py-4" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1)">
+                        <div class="font-display text-2xl" style="color:#fff">{{ $v }}</div>
+                        <div class="mt-0.5 text-xs" style="color:#7fa9a3">{{ $l }}</div>
+                    </div>
+                @endforeach
+            </div>
         </div>
-        <flux:text>
-            You answered {{ $this->correctCount }} out of {{ $this->totalCount }} questions correctly.
-        </flux:text>
-        <flux:badge :color="$attempt->score >= 70 ? 'green' : ($attempt->score >= 50 ? 'yellow' : 'red')">
-            {{ $attempt->score >= 70 ? 'Passed' : ($attempt->score >= 50 ? 'Needs Improvement' : 'Failed') }}
-        </flux:badge>
     </div>
+
+    @unless ($this->answersRevealed)
+        <flux:callout variant="warning" icon="lock-closed">
+            <flux:callout.heading>Correct answers are not available yet</flux:callout.heading>
+            <flux:callout.text>Your teacher will release the correct answers and explanations later. Your score and which questions you got right are already shown.</flux:callout.text>
+        </flux:callout>
+    @endunless
 
     {{-- Recommended Practice --}}
     @if ($this->recommendations->isNotEmpty())
@@ -148,7 +186,7 @@ new #[Title('Exam Results')] class extends Component {
                 <svg xmlns="http://www.w3.org/2000/svg" class="size-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
                 </svg>
-                <flux:heading size="lg">Recommended Practice</flux:heading>
+                <h2 class="font-display text-2xl text-charcoal-900">Recommended practice</h2>
             </div>
             <flux:text size="sm">Based on the questions you missed, here are similar questions from other exams to practice:</flux:text>
             <div class="space-y-2">
@@ -170,7 +208,7 @@ new #[Title('Exam Results')] class extends Component {
     @endif
 
     {{-- Question Review --}}
-    <flux:heading size="lg">Question Review</flux:heading>
+    <h2 class="font-display text-3xl text-charcoal-900">Question review</h2>
     <div class="space-y-3">
         @foreach ($attempt->exam->questions as $index => $question)
             @php
@@ -222,13 +260,13 @@ new #[Title('Exam Results')] class extends Component {
 
                 <flux:text size="sm">Your answer: <strong>{{ $rawAnswer ?? 'Not answered' }}</strong></flux:text>
 
-                @if (!$isCorrect && !$isAiGraded)
+                @if (!$isCorrect && !$isAiGraded && $this->answersRevealed)
                     <flux:text size="sm" style="color:#16A34A;">
                         Correct answer: <strong>{{ $question->correct_answer }}</strong>
                     </flux:text>
                 @endif
 
-                @if ($isAiGraded)
+                @if ($isAiGraded && $this->answersRevealed)
                     @if ($given['ai_explanation'] ?? null)
                         <flux:text size="sm" style="color:#374151;">
                             {{ $given['ai_explanation'] }}
@@ -247,11 +285,14 @@ new #[Title('Exam Results')] class extends Component {
     </div>
 
     <div class="flex justify-center gap-3 flex-wrap">
+        <flux:button variant="primary" icon="arrow-down-tray" :href="route('student.attempts.pdf', $attempt)">
+            Download PDF
+        </flux:button>
         <flux:button variant="outline" wire:click="requestExport" wire:loading.attr="disabled"
             wire:target="requestExport">
             <span wire:loading.remove wire:target="requestExport" class="inline-flex items-center gap-1">
-                <flux:icon.arrow-down-tray class="size-4" />
-                Download Result (PDF)
+                <flux:icon.envelope class="size-4" />
+                Email me the PDF
             </span>
             <span wire:loading wire:target="requestExport" class="inline-flex items-center gap-1">
                 <svg class="animate-spin size-4" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>

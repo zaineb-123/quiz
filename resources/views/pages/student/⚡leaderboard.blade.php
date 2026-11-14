@@ -13,6 +13,7 @@ new #[Title('Leaderboard')] class extends Component {
     {
         abort_unless($this->exam->isPublished(), 404);
         abort_unless($this->exam->leaderboard_enabled, 404);
+        abort_unless($this->exam->isAssignedTo(auth()->user()), 403);
     }
 
     /** Triggered by Alpine Echo listener when a new submission arrives. */
@@ -60,92 +61,69 @@ new #[Title('Leaderboard')] class extends Component {
     }
 }; ?>
 
-<div
-    class="mx-auto max-w-2xl flex flex-col gap-6"
+@php
+    $top = $this->topAttempts->values();
+    $order = [1, 0, 2];                     // visual order: 2nd, 1st, 3rd
+    $heights = [0 => 190, 1 => 150, 2 => 120];
+    $tones = [0 => 'linear-gradient(180deg,#fbbf24,#f59e0b)', 1 => 'linear-gradient(180deg,#5eead4,#14b8a6)', 2 => 'linear-gradient(180deg,#ffb4b4,#ff8f8f)'];
+@endphp
+
+<div class="mx-auto max-w-2xl flex flex-col gap-8"
     x-data="{
         initEcho() {
             if (typeof Echo === 'undefined') return;
-            Echo.channel('exam.{{ $exam->id }}')
-                .listen('AttemptSubmittedEvent', () => {
-                    $wire.dispatch('exam-attempt-submitted');
-                });
+            Echo.channel('exam.{{ $exam->id }}').listen('AttemptSubmittedEvent', () => { $wire.dispatch('exam-attempt-submitted'); });
         }
     }"
-    x-init="initEcho()"
->
-    <div class="flex items-center gap-4">
-        <flux:button variant="ghost" icon="arrow-left" :href="route('student.dashboard')" wire:navigate />
-        <div>
-            <flux:heading size="xl">Leaderboard</flux:heading>
-            <flux:text>{{ $exam->title }}</flux:text>
-        </div>
-        <span class="ml-auto inline-flex items-center gap-1.5 text-sm text-teal-700 font-medium">
-            <span class="size-2 rounded-full bg-teal-500 inline-block animate-pulse"></span>
-            Live
-        </span>
-    </div>
+    x-init="initEcho()">
 
-    {{-- My rank card (if already completed) --}}
+    <x-page-header :back="route('student.dashboard')" title="Leaderboard" :subtitle="$exam->title">
+        <span class="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-medium" style="background:#dcfaf3;color:#0f766e"><i class="dot-live"></i>Live</span>
+    </x-page-header>
+
     @if ($this->myRank !== null)
-        <div class="bento-flat p-6 flex items-center justify-between gap-4" style="border-color:#86EFAC; background:#F0FDF4;">
-            <div>
-                <flux:text class="text-sm text-zinc-500">Your current rank</flux:text>
-                <div class="text-3xl font-bold text-teal-700">#{{ $this->myRank }}</div>
+        <div class="hero-ink flex items-center justify-between gap-4 p-7">
+            <div class="relative z-10">
+                <div class="text-sm" style="color:#8fb3ad">Your current rank</div>
+                <div class="font-display text-6xl leading-none" style="color:#fff">#{{ $this->myRank }}</div>
             </div>
-            <flux:badge :color="$this->myRank === 1 ? 'yellow' : 'teal'" size="lg">
-                {{ $this->myRank === 1 ? 'Top of the class!' : 'Keep it up!' }}
-            </flux:badge>
+            <span class="relative z-10 rounded-full px-4 py-2 text-sm font-medium" style="background:rgba(94,234,212,.16);color:#7ff0dc">{{ $this->myRank === 1 ? 'Top of the class' : 'Keep it up' }}</span>
         </div>
     @endif
 
-    {{-- Top 10 --}}
-    <div class="bento-flat divide-y divide-gray-100">
-        @forelse ($this->topAttempts as $index => $attempt)
-            @php
-                $rank = $index + 1;
-                $isMe = $attempt->user_id === auth()->id();
-            @endphp
-            <div
-                class="flex items-center gap-4 px-4 py-3 {{ $isMe ? 'bg-teal-50' : '' }}"
-                wire:key="rank-{{ $attempt->id }}"
-            >
-                <div class="w-8 text-center font-bold shrink-0">
-                    @if ($rank === 1)
-                        <span class="text-lg">🥇</span>
-                    @elseif ($rank === 2)
-                        <span class="text-lg">🥈</span>
-                    @elseif ($rank === 3)
-                        <span class="text-lg">🥉</span>
-                    @else
-                        <span class="text-sm text-zinc-500">#{{ $rank }}</span>
-                    @endif
-                </div>
-
-                <div class="flex-1 min-w-0">
-                    <flux:text class="font-medium truncate">
-                        {{ $isMe ? 'You' : $attempt->student->name }}
-                    </flux:text>
-                    <flux:text class="text-xs text-zinc-400">
-                        Submitted {{ $attempt->completed_at->diffForHumans() }}
-                    </flux:text>
-                </div>
-
-                <div class="text-right shrink-0">
-                    <div class="text-lg font-bold {{ $attempt->score >= 70 ? 'score-pass' : ($attempt->score >= 50 ? 'score-warn' : 'score-fail') }}">
-                        {{ $attempt->score }}%
+    @if ($top->isNotEmpty())
+        <div class="podium px-2 pt-4">
+            @foreach ($order as $idx)
+                @if ($top->has($idx))
+                    @php $a = $top[$idx]; $isMe = $a->user_id === auth()->id(); @endphp
+                    <div class="podium-col" wire:key="podium-{{ $a->id }}">
+                        <div class="avatar-dot">{{ \Illuminate\Support\Str::of($a->student->name)->substr(0, 1)->upper() }}</div>
+                        <div class="truncate text-sm font-semibold text-charcoal-900">{{ $isMe ? 'You' : $a->student->name }}</div>
+                        <div class="mb-2 text-[13px]" style="color:#5d7270">{{ $a->score }}%</div>
+                        <div class="podium-bar" style="height:{{ $heights[$idx] }}px;background:{{ $tones[$idx] }};--i:{{ $idx }}">{{ $idx + 1 }}</div>
                     </div>
+                @endif
+            @endforeach
+        </div>
+    @endif
+
+    <div class="bento-flat !p-2">
+        @forelse ($top->slice(3) as $index => $attempt)
+            @php $rank = $index + 1; $isMe = $attempt->user_id === auth()->id(); @endphp
+            <div class="flex items-center gap-4 rounded-2xl px-4 py-3 {{ $isMe ? 'bg-teal-50' : '' }}" wire:key="rank-{{ $attempt->id }}">
+                <div class="w-8 text-center text-sm font-semibold" style="color:#5d7270">#{{ $rank }}</div>
+                <div class="min-w-0 flex-1">
+                    <div class="truncate font-medium text-charcoal-900">{{ $isMe ? 'You' : $attempt->student->name }}</div>
+                    <div class="text-xs" style="color:#8aa09c">Submitted {{ $attempt->completed_at->diffForHumans() }}</div>
                 </div>
+                <x-ring :pct="$attempt->score" :size="46" :stroke="5" track="#e8f0ee" :glow="false"><span class="text-[11px] font-semibold text-charcoal-900">{{ $attempt->score }}</span></x-ring>
             </div>
         @empty
-            <div class="py-12 text-center">
-                <flux:text>No submissions yet. Be the first to complete this exam!</flux:text>
-            </div>
+            @if ($top->isEmpty())
+                <div class="empty-state p-12 text-center"><p class="font-display text-2xl text-charcoal-900">No submissions yet.</p><p class="mt-1" style="color:#5d7270">Be the first to complete this exam.</p></div>
+            @endif
         @endforelse
     </div>
 
-    <div class="flex justify-center">
-        <flux:button variant="ghost" :href="route('student.dashboard')" wire:navigate>
-            Back to Dashboard
-        </flux:button>
-    </div>
+    <div class="flex justify-center"><a href="{{ route('student.dashboard') }}" wire:navigate class="btn-line">Back to dashboard</a></div>
 </div>
