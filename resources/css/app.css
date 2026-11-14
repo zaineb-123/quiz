@@ -1,0 +1,861 @@
+@import 'tailwindcss';
+@import '../../vendor/livewire/flux/dist/flux.css';
+
+@source '../views';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../vendor/livewire/flux-pro/stubs/**/*.blade.php';
+@source '../../vendor/livewire/flux/stubs/**/*.blade.php';
+
+/* ─────────────────────────────────────────────────────
+   Force class-based dark mode — we NEVER add .dark to
+   <html>, so dark: variants never fire regardless of OS
+   preference. This prevents Flux's dark:text-white/80,
+   dark:placeholder-white/60 etc. from making text
+   invisible on our light backgrounds.
+   ───────────────────────────────────────────────────── */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─────────────────────────────────────────────────────
+   QuizForge Design System — Light Mode Only
+   ─────────────────────────────────────────────────────
+   Off-White        #F8F9FA                  — canvas bg
+   Deep Charcoal    #1F2937  gray-800        — primary text
+   Teal Primary     #0D9488  teal-600        — primary actions
+   Coral Accent     #FF9494                  — interactive / achievement (sparing)
+   Soft Pink        #FFE3E1                  — category bento tint (2-5%)
+   Sunny Yellow     #F59E0B  amber-500       — badges/progress
+   Surface          #FFFFFF                  — card bg
+   Border           #E5E7EB  gray-200        — 1px card border
+   ───────────────────────────────────────────────────── */
+
+
+@theme {
+    /* ── Typography — Lexend for reading ease ── */
+    --font-sans: 'Lexend', ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* ── Canvas & surface ── */
+    --color-canvas:       #F8F9FA;
+    --color-surface:      #FFFFFF;
+    --color-border:       #E5E7EB;
+    --color-border-hover: #D1D5DB;
+
+    /* ── Charcoal text scale ── */
+    --color-charcoal-900: #1F2937;
+    --color-charcoal-600: #4B5563;
+    --color-charcoal-400: #9CA3AF;
+
+    /* ── Teal (primary actions) ── */
+    --color-teal-50:  #F0FDFA;
+    --color-teal-100: #CCFBF1;
+    --color-teal-200: #99F6E4;
+    --color-teal-500: #14B8A6;
+    --color-teal-600: #0D9488;
+    --color-teal-700: #0F766E;
+    --color-teal-800: #115E59;
+
+    /* ── Coral Accent (interactive / achievement — use sparingly) ── */
+    --color-coral:       #FF9494;
+    --color-coral-50:    #FFF0EF;
+    --color-coral-100:   #FFE3E1;
+    --color-coral-600:   #FF6B6B;
+    --color-coral-700:   #E05555;
+
+    /* ── Sunny Yellow ── */
+    --color-sunny-50:  #FFFBEB;
+    --color-sunny-100: #FEF3C7;
+    --color-sunny-300: #FCD34D;
+    --color-sunny-400: #FBBF24;
+    --color-sunny-500: #F59E0B;
+    --color-sunny-600: #D97706;
+    --color-sunny-900: #78350F;
+
+    /* ── Flux accent → Teal ── */
+    --color-accent:            #0D9488;
+    --color-accent-content:    #0D9488;
+    --color-accent-foreground: #FFFFFF;
+
+    /* ── Zinc (kept for Flux internals) ── */
+    --color-zinc-50:  #fafafa;
+    --color-zinc-100: #f5f5f5;
+    --color-zinc-200: #e5e5e5;
+    --color-zinc-300: #d4d4d4;
+    --color-zinc-400: #a3a3a3;
+    --color-zinc-500: #737373;
+    --color-zinc-600: #525252;
+    --color-zinc-700: #404040;
+    --color-zinc-800: #262626;
+    --color-zinc-900: #171717;
+    --color-zinc-950: #0a0a0a;
+
+    /* ── Bento radii ── */
+    --radius-bento:       14px;
+    --radius-bento-inner: 10px;
+
+    /* ── Shadows ── */
+    --shadow-bento:       0 1px 3px 0 rgba(31,41,55,.06), 0 1px 2px -1px rgba(31,41,55,.04);
+    --shadow-bento-hover: 0 8px 28px -4px rgba(31,41,55,.10), 0 2px 6px -2px rgba(31,41,55,.06);
+}
+
+/* ═══════════════════════════════════════════
+   Base
+   ═══════════════════════════════════════════ */
+@layer base {
+    :root {
+        color-scheme: light;
+    }
+
+    html {
+        background-color: #F8F9FA;
+        color: #1F2937;
+    }
+
+    body {
+        background-color: #F8F9FA;
+        color: #1F2937;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        letter-spacing: -0.025em;
+        font-weight: 700;
+        color: #1F2937;
+    }
+
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-border);
+    }
+}
+
+/* ═══════════════════════════════════════════
+   Bento Card System
+   ═══════════════════════════════════════════ */
+@layer components {
+
+    /* ── Core card ── */
+    .bento-card {
+        background-color: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-bento);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-bento);
+        transition:
+            box-shadow 220ms cubic-bezier(.4,0,.2,1),
+            border-color 220ms cubic-bezier(.4,0,.2,1),
+            transform 220ms cubic-bezier(.4,0,.2,1);
+    }
+
+    .bento-card:hover {
+        box-shadow: var(--shadow-bento-hover);
+        border-color: var(--color-border-hover);
+        transform: translateY(-2px);
+    }
+
+    /* ── Flat — no lift (inside forms, settings) ── */
+    .bento-flat {
+        background-color: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-bento);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-bento);
+    }
+
+    /* ── Teal highlight card ── */
+    .bento-teal {
+        background-color: var(--color-teal-600);
+        border: none;
+        border-radius: var(--radius-bento);
+        padding: 2rem;
+        color: white;
+        box-shadow: 0 8px 32px -4px rgba(13,148,136,.35);
+    }
+
+    /* ── Canvas cell (subtle off-white) ── */
+    .bento-canvas {
+        background-color: var(--color-canvas);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-bento);
+        padding: 1.5rem;
+    }
+
+    /* ── Icon badges ── */
+    .icon-teal {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        background-color: var(--color-teal-50);
+        color: var(--color-teal-700);
+        border-radius: var(--radius-bento-inner);
+        flex-shrink: 0;
+    }
+
+    .icon-sunny {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        background-color: var(--color-sunny-100);
+        color: var(--color-sunny-600);
+        border-radius: var(--radius-bento-inner);
+        flex-shrink: 0;
+    }
+
+    .icon-canvas {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        background-color: var(--color-canvas);
+        color: var(--color-charcoal-600);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-bento-inner);
+        flex-shrink: 0;
+    }
+
+    /* ── Sunny badge pill ── */
+    .badge-sunny {
+        display: inline-flex;
+        align-items: center;
+        gap: .375rem;
+        background-color: var(--color-sunny-100);
+        color: var(--color-sunny-900);
+        border: 1px solid var(--color-sunny-300);
+        border-radius: 999px;
+        padding: .2rem .65rem;
+        font-size: .75rem;
+        font-weight: 600;
+        letter-spacing: .01em;
+    }
+
+    /* ── Progress bar — sunny yellow ── */
+    .progress-bar {
+        background-color: var(--color-sunny-100);
+        border-radius: 999px;
+        overflow: hidden;
+        height: 8px;
+    }
+
+    .progress-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--color-sunny-400), var(--color-sunny-500));
+        transition: width 700ms cubic-bezier(.4,0,.2,1);
+    }
+
+    /* ── Frosted glass nav bar ── */
+    .glass-bar {
+        background-color: rgba(248, 249, 250, 0.85);
+        backdrop-filter: blur(14px) saturate(1.2);
+        -webkit-backdrop-filter: blur(14px) saturate(1.2);
+        border-bottom: 1px solid rgba(229, 231, 235, 0.85);
+    }
+
+    /* ── Teal primary button (inline helper) ── */
+    .btn-teal {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .5rem;
+        background-color: var(--color-teal-600);
+        color: white;
+        font-weight: 600;
+        font-size: .875rem;
+        padding: .625rem 1.25rem;
+        border-radius: var(--radius-bento-inner);
+        border: none;
+        cursor: pointer;
+        transition: background-color 150ms ease, box-shadow 150ms ease;
+        text-decoration: none;
+    }
+
+    .btn-teal:hover {
+        background-color: var(--color-teal-700);
+        box-shadow: 0 4px 14px -2px rgba(13,148,136,.4);
+    }
+
+    /* ── Score colours ── */
+    .score-pass { color: var(--color-teal-600); }
+    .score-warn { color: var(--color-sunny-500); }
+    .score-fail { color: #DC2626; }
+
+    /* ── Divider ── */
+    .divider {
+        border: none;
+        border-top: 1px solid var(--color-border);
+        margin: 1.5rem 0;
+    }
+
+    /* ── Bento category card — Soft Pink tint (≈4% opacity) ── */
+    /* Applies to specific Bento cards to distinguish quiz categories */
+    .bento-category {
+        background-color: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-bento);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-bento);
+        background-image: linear-gradient(
+            135deg,
+            rgba(255, 227, 225, 0.18) 0%,
+            rgba(255, 148, 148, 0.04) 100%
+        );
+        transition:
+            box-shadow 220ms cubic-bezier(.4,0,.2,1),
+            border-color 220ms cubic-bezier(.4,0,.2,1),
+            transform 220ms cubic-bezier(.4,0,.2,1);
+    }
+
+    .bento-category:hover {
+        box-shadow: var(--shadow-bento-hover);
+        border-color: rgba(255, 148, 148, 0.35);
+        transform: translateY(-2px);
+    }
+
+    /* ── Coral icon badge (achievement / interactive) ── */
+    .icon-coral {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        background-color: var(--color-coral-50);
+        color: var(--color-coral-700);
+        border-radius: var(--radius-bento-inner);
+        flex-shrink: 0;
+    }
+
+    /* ── Coral badge pill (achievement notifications) ── */
+    .badge-coral {
+        display: inline-flex;
+        align-items: center;
+        gap: .375rem;
+        background-color: var(--color-coral-50);
+        color: var(--color-coral-700);
+        border: 1px solid rgba(255, 148, 148, 0.35);
+        border-radius: 999px;
+        padding: .2rem .65rem;
+        font-size: .75rem;
+        font-weight: 600;
+        letter-spacing: .01em;
+    }
+
+    /* ── Coral notification dot ── */
+    .dot-coral {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background-color: var(--color-coral);
+        flex-shrink: 0;
+    }
+}
+
+/* ═══════════════════════════════════════════
+   Flux component overrides
+   ═══════════════════════════════════════════ */
+[data-flux-field]:not(ui-radio, ui-checkbox) {
+    @apply grid gap-2;
+}
+
+[data-flux-label] {
+    @apply !mb-0 !leading-tight;
+}
+
+/* ── Flux typography — enforce design system text colors ── */
+/* flux.css uses [:where(&)] (zero specificity); an attribute selector wins  */
+[data-flux-heading] {
+    color: #1F2937 !important;
+}
+
+[data-flux-subheading] {
+    color: #4B5563 !important;
+}
+
+[data-flux-text] {
+    color: #4B5563 !important;
+}
+
+[data-flux-label] {
+    color: #1F2937 !important;
+}
+
+[data-flux-description] {
+    color: #6B7280 !important;
+}
+
+/* ── Flux table — force readable text ── */
+[data-flux-column] {
+    color: #1F2937 !important;
+}
+
+[data-flux-cell] {
+    color: #4B5563 !important;
+}
+
+/* ── Flux select button text ── */
+button[data-flux-select],
+button[data-flux-select] * {
+    color: #1F2937 !important;
+}
+
+/* ── Flux menu / dropdown items ── */
+[data-flux-menu-item] {
+    color: #1F2937 !important;
+}
+
+/* ── Flux sidebar items ── */
+[data-flux-sidebar-item] {
+    color: #4B5563 !important;
+}
+
+[data-flux-sidebar-item][data-current] {
+    color: #0D9488 !important;
+}
+
+/* ── Teal accent — override Flux's default zinc-800 ── */
+@layer theme {
+    :root {
+        --color-accent:            #0D9488;
+        --color-accent-content:    #0D9488;
+        --color-accent-foreground: #FFFFFF;
+    }
+}
+
+/* ═══════════════════════════════════════════
+   Bento Form Elements
+   ─────────────────────────────────────────
+   White surface · 12 px radius · 1.5 px border
+   Teal focus border + soft glow
+   ═══════════════════════════════════════════ */
+
+/* ── Text / number / email / password / search inputs ── */
+input[data-flux-control] {
+    border-radius: 12px !important;
+    border-width: 1.5px !important;
+    border-color: var(--color-border) !important;
+    border-bottom-color: var(--color-border-hover) !important;
+    background-color: var(--color-surface) !important;
+    color: #1F2937 !important;
+    padding-top: 0.625rem !important;
+    padding-bottom: 0.625rem !important;
+    height: auto !important;
+    min-height: 2.75rem;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+input[data-flux-control]:focus,
+input[data-flux-control]:focus-visible {
+    outline: none !important;
+    border-color: var(--color-teal-600) !important;
+    border-bottom-color: var(--color-teal-600) !important;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12) !important;
+}
+
+/* ── Textarea ── */
+textarea[data-flux-control] {
+    border-radius: 12px !important;
+    border-width: 1.5px !important;
+    border-color: var(--color-border) !important;
+    border-bottom-color: var(--color-border-hover) !important;
+    background-color: var(--color-surface) !important;
+    color: #1F2937 !important;
+    padding: 0.75rem 0.875rem !important;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+textarea[data-flux-control]:focus,
+textarea[data-flux-control]:focus-visible {
+    outline: none !important;
+    border-color: var(--color-teal-600) !important;
+    border-bottom-color: var(--color-teal-600) !important;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12) !important;
+}
+
+/* ── Native select ── */
+select[data-flux-select-native] {
+    border-radius: 12px !important;
+    border-width: 1.5px !important;
+    border-color: var(--color-border) !important;
+    border-bottom-color: var(--color-border-hover) !important;
+    background-color: var(--color-surface) !important;
+    color: #1F2937 !important;
+    height: auto !important;
+    min-height: 2.75rem;
+    padding-top: 0.625rem !important;
+    padding-bottom: 0.625rem !important;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+select[data-flux-select-native]:focus,
+select[data-flux-select-native]:focus-visible {
+    outline: none !important;
+    border-color: var(--color-teal-600) !important;
+    border-bottom-color: var(--color-teal-600) !important;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12) !important;
+}
+
+/* ── Checkbox & Radio focus-visible ring ── */
+ui-checkbox[data-flux-control]:focus-visible,
+ui-radio[data-flux-control]:focus-visible {
+    outline: 2px solid var(--color-teal-600) !important;
+    outline-offset: 3px !important;
+    border-radius: 4px;
+}
+
+/* ── Radio cards — Bento aesthetic ── */
+ui-radio[data-flux-radio-cards] {
+    border-radius: 12px !important;
+    border-width: 1.5px !important;
+    background-color: var(--color-surface) !important;
+    transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease !important;
+}
+
+/* after: pseudo overlay also needs matching radius */
+ui-radio[data-flux-radio-cards]::after {
+    border-radius: 10px !important;
+}
+
+ui-radio[data-flux-radio-cards]:not([data-checked]):hover {
+    background-color: #fafaf9 !important;
+    border-color: var(--color-border-hover) !important;
+}
+
+ui-radio[data-flux-radio-cards][data-checked] {
+    border-color: var(--color-teal-600) !important;
+    box-shadow: 0 0 0 1px var(--color-teal-600), 0 4px 14px -2px rgba(13, 148, 136, 0.15) !important;
+}
+
+/* ── Quiz option card (raw HTML radio labels in take-exam) ── */
+.quiz-option {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    cursor: pointer;
+    border-radius: 12px;
+    border: 1.5px solid var(--color-border);
+    padding: 0.875rem 1.125rem;
+    background-color: var(--color-surface);
+    transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+    user-select: none;
+}
+
+.quiz-option:hover {
+    border-color: var(--color-border-hover);
+    background-color: #fafaf9;
+}
+
+.quiz-option:has(input:checked),
+.quiz-option--selected {
+    border-color: var(--color-teal-600);
+    background-color: var(--color-teal-50);
+    box-shadow: 0 0 0 1px var(--color-teal-600), 0 4px 14px -2px rgba(13, 148, 136, 0.12);
+}
+
+.quiz-option input[type="radio"] {
+    accent-color: var(--color-teal-600);
+    width: 1.125rem;
+    height: 1.125rem;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.quiz-option span {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--color-charcoal-900);
+    line-height: 1.5;
+}
+
+/* ── Placeholder text — always medium gray, never white ── */
+input[data-flux-control]::placeholder,
+textarea[data-flux-control]::placeholder {
+    color: #9CA3AF !important;
+    opacity: 1 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   QuizForge v2 — "Ink & Ember"
+   Deep-teal ink surfaces, ember ring signature, serif display,
+   glass, and purposeful motion. Appended unlayered so it wins
+   over the v1 component layer — every old class keeps working.
+   ═══════════════════════════════════════════════════════════ */
+:root {
+    --ink: #061a19;
+    --ink-2: #0c2b29;
+    --ink-3: #0f3d39;
+    --mint: #5eead4;
+    --mist: #f2f6f5;
+    --line: #dfe8e6;
+    --font-display: 'Fraunces', 'GFS Baskerville', Georgia, serif;
+    --ease-out: cubic-bezier(.22, 1, .36, 1);
+}
+
+[x-cloak] { display: none !important; }
+
+html, body { background-color: var(--mist) !important; }
+body {
+    background-image:
+        radial-gradient(900px 480px at 100% -5%, rgba(94, 234, 212, .22), transparent 60%),
+        radial-gradient(700px 420px at 0% 105%, rgba(255, 148, 148, .10), transparent 60%);
+    background-attachment: fixed;
+}
+
+/* ── Typography: serif display for page titles ── */
+h1, h2, .font-display,
+[data-flux-heading]:is([class*="text-2xl"], [class*="text-xl"]) {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -.02em;
+}
+
+/* ── Cards: bigger radius, deeper hover ── */
+.bento-card, .bento-flat, .bento-canvas, .bento-category {
+    border-radius: 22px;
+    border-color: var(--line);
+    box-shadow: 0 1px 2px rgba(6, 26, 25, .04), 0 16px 36px -20px rgba(6, 26, 25, .16);
+}
+.bento-card:hover, .bento-category:hover {
+    transform: translateY(-3px);
+    border-color: #b7e7df;
+    box-shadow: 0 2px 4px rgba(6, 26, 25, .05), 0 30px 50px -24px rgba(6, 26, 25, .28);
+}
+.bento-teal { background: linear-gradient(135deg, var(--ink), var(--ink-3)); border-radius: 26px; }
+
+/* ── Buttons: pill + tactile press ── */
+[data-flux-button] { border-radius: 999px; transition: transform 160ms var(--ease-out), box-shadow 200ms, background-color 200ms; }
+[data-flux-button]:active { transform: scale(.96); }
+.btn-teal, .btn-ember {
+    border-radius: 999px;
+    background: linear-gradient(135deg, #8ff5e3, #2fcdb6);
+    color: #042220;
+    box-shadow: 0 12px 30px -10px rgba(45, 205, 182, .65);
+    transition: transform 180ms var(--ease-out), box-shadow 220ms;
+}
+.btn-teal:hover, .btn-ember:hover {
+    background: linear-gradient(135deg, #8ff5e3, #2fcdb6);
+    transform: translateY(-2px);
+    box-shadow: 0 18px 36px -10px rgba(45, 205, 182, .8);
+}
+.btn-ink {
+    display: inline-flex; align-items: center; gap: .5rem; border-radius: 999px;
+    background: var(--ink); color: #fff; font-weight: 600; font-size: .875rem;
+    padding: .75rem 1.5rem; transition: transform 180ms var(--ease-out), box-shadow 220ms;
+}
+.btn-ink:hover { transform: translateY(-2px); box-shadow: 0 16px 30px -12px rgba(6, 26, 25, .6); }
+.btn-line {
+    display: inline-flex; align-items: center; gap: .5rem; border-radius: 999px;
+    border: 1px solid #cfdcd9; color: var(--ink); font-weight: 600; font-size: .875rem;
+    padding: .7rem 1.4rem; background: #fff; transition: border-color 200ms, transform 180ms var(--ease-out);
+}
+.btn-line:hover { border-color: var(--ink); transform: translateY(-2px); }
+
+/* ── Sidebar: ink panel with glowing active marker ── */
+.qf-sidebar {
+    background: linear-gradient(180deg, var(--ink-2), var(--ink)) !important;
+    border-right: none !important;
+    border-radius: 0 30px 30px 0;
+    box-shadow: 24px 0 60px -34px rgba(6, 26, 25, .7);
+}
+.qf-sidebar [data-flux-sidebar-item] {
+    color: #8fb3ad !important; border-radius: 16px; position: relative;
+    transition: background-color 200ms, color 200ms, transform 200ms var(--ease-out);
+}
+.qf-sidebar [data-flux-sidebar-item]:hover { background: rgba(255, 255, 255, .06) !important; color: #fff !important; transform: translateX(3px); }
+.qf-sidebar [data-flux-sidebar-item][data-current] {
+    color: #fff !important;
+    background: linear-gradient(90deg, rgba(94, 234, 212, .20), rgba(94, 234, 212, .04)) !important;
+}
+.qf-sidebar [data-flux-sidebar-item][data-current]::before {
+    content: ''; position: absolute; left: -8px; top: 22%; bottom: 22%; width: 4px; border-radius: 4px;
+    background: var(--mint); box-shadow: 0 0 14px var(--mint); animation: marker-in .5s var(--ease-out) both;
+}
+.qf-sidebar [data-flux-sidebar-item][data-current] svg { color: var(--mint); }
+.qf-sidebar [data-flux-profile], .qf-sidebar [data-flux-profile] * { color: #dff5f1 !important; }
+.qf-sidebar [data-flux-sidebar-collapse] { color: #8fb3ad !important; }
+.qf-page {
+    animation: none !important;
+    transform: none !important;
+}
+
+/* ── Ember ring (signature) ── */
+.ring-fill {
+    stroke-dasharray: var(--c); stroke-dashoffset: var(--o);
+    animation: ring-in 1.5s var(--ease-out) both; animation-delay: .15s;
+}
+
+/* ── Dashboard pieces ── */
+.hero-ink {
+    position: relative; overflow: hidden; border-radius: 30px; color: #fff;
+    background: linear-gradient(135deg, var(--ink), var(--ink-3));
+    box-shadow: 0 30px 50px -28px rgba(6, 26, 25, .7);
+}
+.hero-ink::after {
+    content: ''; position: absolute; right: -80px; top: -100px; width: 320px; height: 320px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 148, 148, .38), transparent 65%); pointer-events: none;
+    animation: breathe 6s ease-in-out infinite;
+}
+.stagger > * { animation: rise .7s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 80ms); }
+.dot-live { width: 7px; height: 7px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 0 rgba(94, 234, 212, .6); animation: ping 1.8s infinite; }
+.flame { animation: flicker 2.4s ease-in-out infinite; transform-origin: 50% 90%; }
+.day-dot { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.day-dot.on { background: linear-gradient(135deg, #fbbf24, #ff9494); color: #fff; }
+.day-dot.off { border: 2px dashed #cbd9d6; }
+.cover { position: relative; height: 92px; overflow: hidden; }
+.cover::before, .cover::after { content: ''; position: absolute; background: rgba(255, 255, 255, .24); transition: transform 600ms var(--ease-out); }
+.cover::before { right: -30px; top: -40px; width: 150px; height: 150px; border-radius: 50%; }
+.cover::after { right: 80px; top: 34px; width: 64px; height: 64px; border-radius: 50%; border: 10px solid rgba(255, 255, 255, .28); background: transparent; }
+.cover-1::before { border-radius: 34px; transform: rotate(20deg); }
+.cover-1::after { border-radius: 18px; transform: rotate(-12deg); }
+.cover-2::before { background: transparent; border: 2px solid rgba(255, 255, 255, .4); }
+.cover-2::after { background: transparent; border: 2px solid rgba(255, 255, 255, .4); }
+.bento-card:hover .cover::before { transform: scale(1.12) rotate(8deg); }
+.bento-card:hover .cover::after { transform: scale(1.2) rotate(-10deg); }
+.go-btn {
+    width: 42px; height: 42px; border-radius: 50%; background: var(--ink); color: var(--mint);
+    display: grid; place-items: center; transition: transform 220ms var(--ease-out), background-color 200ms;
+}
+.bento-card:hover .go-btn { transform: translateX(4px) scale(1.06); background: #0f3d39; }
+
+/* ── Focus mode (exam taking) ── */
+.focus-stage {
+    position: fixed; inset: 0; z-index: 60; overflow-y: auto; color: #e3f5f2;
+    font-family: 'Lexend', sans-serif; animation: stage-in .6s var(--ease-out) both;
+    background:
+        radial-gradient(900px 560px at 50% -12%, rgba(20, 184, 166, .30), transparent 62%),
+        radial-gradient(520px 380px at 100% 100%, rgba(255, 148, 148, .13), transparent 60%),
+        var(--ink);
+}
+.focus-stage * { border-color: rgba(255, 255, 255, .13); }
+.focus-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.25rem 1.5rem; }
+.focus-wrap { max-width: 51rem; margin: 0 auto; padding: .5rem 1.25rem 11rem; }
+.f-pill { display: inline-flex; align-items: center; gap: .5rem; padding: .6rem 1.1rem; border-radius: 999px; font-size: .875rem; border: 1px solid rgba(255, 255, 255, .16); color: #cfe9e5; transition: background-color 200ms; }
+.f-pill:hover { background: rgba(255, 255, 255, .08); }
+.f-segs { display: flex; gap: 5px; }
+.f-seg { flex: 1; height: 6px; border-radius: 6px; background: rgba(255, 255, 255, .12); transition: background .5s, box-shadow .5s; }
+.f-seg.done { background: linear-gradient(90deg, #5eead4, #2dd4bf); }
+.f-seg.cur { background: #fbbf24; box-shadow: 0 0 14px rgba(251, 191, 36, .7); }
+.f-q { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.6rem, 3.4vw, 2.6rem); line-height: 1.2; color: #fff; margin: 1.5rem 0 2rem; letter-spacing: -.015em; }
+.f-opt {
+    display: flex; align-items: center; gap: 1rem; padding: .95rem 1.1rem; margin-bottom: .8rem; cursor: pointer;
+    border-radius: 20px; border: 1px solid rgba(255, 255, 255, .13); background: rgba(255, 255, 255, .04);
+    font-size: 1.05rem; color: #e3f5f2; user-select: none;
+    transition: transform 220ms var(--ease-out), border-color 200ms, background-color 200ms, box-shadow 300ms;
+}
+.f-opt:hover { transform: translateX(4px); border-color: rgba(255, 255, 255, .28); background: rgba(255, 255, 255, .07); }
+.f-opt:has(input:checked) {
+    border-color: var(--mint); background: rgba(94, 234, 212, .13); color: #fff;
+    box-shadow: 0 0 0 4px rgba(94, 234, 212, .10), 0 18px 40px -16px rgba(94, 234, 212, .55);
+}
+.f-opt:has(input:focus-visible) { outline: 2px solid var(--mint); outline-offset: 3px; }
+.f-key { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; font-weight: 600; font-size: .875rem; background: rgba(255, 255, 255, .08); color: #a9c9c4; flex: none; transition: background-color 200ms, color 200ms; }
+.f-opt:has(input:checked) .f-key { background: var(--mint); color: #042220; animation: pop .4s var(--ease-out); }
+.f-tick { margin-left: auto; width: 22px; height: 22px; color: var(--mint); opacity: 0; transform: scale(.4); transition: opacity 200ms, transform 300ms var(--ease-out); }
+.f-opt:has(input:checked) .f-tick { opacity: 1; transform: scale(1); }
+.f-input {
+    width: 100%; padding: 1.1rem 1.25rem; border-radius: 20px; font-size: 1.1rem; color: #fff;
+    background: rgba(255, 255, 255, .05); border: 1.5px solid rgba(255, 255, 255, .16); outline: none;
+    transition: border-color 200ms, box-shadow 200ms;
+}
+.f-input::placeholder { color: #6f9a94; }
+.f-input:focus { border-color: var(--mint); box-shadow: 0 0 0 4px rgba(94, 234, 212, .12); }
+.f-hint { padding: 1rem 1.2rem; border-radius: 20px; background: rgba(255, 148, 148, .12); border: 1px solid rgba(255, 148, 148, .35); color: #ffe3e1; font-size: .92rem; line-height: 1.6; }
+.f-chip { display: inline-flex; align-items: center; gap: .5rem; padding: .55rem 1rem; border-radius: 999px; font-size: .85rem; background: rgba(255, 148, 148, .14); color: #ffb4b4; border: 1px solid rgba(255, 148, 148, .35); transition: background-color 200ms; }
+.f-chip:hover { background: rgba(255, 148, 148, .22); }
+.f-foot {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: 1.5rem; background: linear-gradient(0deg, var(--ink) 55%, transparent);
+}
+.f-dots { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; padding: .8rem 1.3rem; max-width: 34rem; border-radius: 999px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .12); backdrop-filter: blur(16px); }
+.f-dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255, 255, 255, .16); transition: transform 200ms var(--ease-out), background-color 300ms; }
+.f-dot:hover { transform: scale(1.5); }
+.f-dot.ans { background: var(--mint); }
+.f-dot.flag { background: transparent; border: 2.5px solid #ff9494; }
+.f-dot.cur { width: 16px; height: 16px; background: #fbbf24; box-shadow: 0 0 0 4px rgba(251, 191, 36, .25), 0 0 16px rgba(251, 191, 36, .8); }
+.f-warn { animation: ping-soft 1.2s ease-in-out infinite; }
+
+/* ── Confetti ── */
+.confetti-piece { position: absolute; top: -12px; pointer-events: none; animation: confetti-fall linear forwards; will-change: transform; }
+
+/* ── Landing / auth pieces ── */
+.aurora { background: radial-gradient(900px 640px at 80% 20%, rgba(20, 184, 166, .38), transparent 60%), radial-gradient(700px 520px at 0% 110%, rgba(255, 148, 148, .22), transparent 60%), var(--ink); }
+.grid-fade { opacity: .07; background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px); background-size: 56px 56px; -webkit-mask-image: radial-gradient(circle at 72% 35%, #000, transparent 68%); mask-image: radial-gradient(circle at 72% 35%, #000, transparent 68%); }
+.glass { background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .13); border-radius: 26px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+.float-a { animation: float 7s ease-in-out infinite; }
+.float-b { animation: float 8s ease-in-out -3s infinite; }
+
+/* ── Keyframes ── */
+@keyframes ring-in { from { stroke-dashoffset: var(--c); } }
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } }
+@keyframes page-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes stage-in { from { opacity: 0; transform: scale(1.015); } }
+@keyframes marker-in { from { transform: scaleY(0); } }
+@keyframes pop { 0% { transform: scale(.7); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@keyframes ping { 70% { box-shadow: 0 0 0 9px rgba(94, 234, 212, 0); } 100% { box-shadow: 0 0 0 0 rgba(94, 234, 212, 0); } }
+@keyframes ping-soft { 50% { opacity: .55; } }
+@keyframes breathe { 50% { transform: scale(1.15); opacity: .8; } }
+@keyframes flicker { 0%, 100% { transform: scale(1) rotate(0); } 30% { transform: scale(1.08, 1.14) rotate(-3deg); } 60% { transform: scale(.96, 1.05) rotate(2deg); } }
+@keyframes float { 50% { transform: translateY(-12px); } }
+@keyframes confetti-fall { to { transform: translate3d(var(--dx, 0), 110vh, 0) rotate(var(--rot, 540deg)); opacity: .9; } }
+
+@media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    .confetti-piece { display: none; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   v2, part 2: every remaining surface
+   (tables, modals, tabs, empty states, stats, podium, errors)
+   ═══════════════════════════════════════════════════════════ */
+[data-flux-heading]:is([class*="text-lg"]) { font-family: var(--font-display); font-weight: 500; letter-spacing: -.015em; }
+
+.back-btn { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 50%; background: #fff; border: 1px solid var(--line); color: var(--ink); transition: transform 200ms var(--ease-out), border-color 200ms, box-shadow 200ms; }
+.back-btn:hover { transform: translateX(-3px); border-color: var(--ink); box-shadow: 0 10px 20px -12px rgba(6, 26, 25, .4); }
+
+.stat-tile { position: relative; overflow: hidden; background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 1.4rem 1.5rem; box-shadow: 0 1px 2px rgba(6, 26, 25, .04), 0 16px 36px -22px rgba(6, 26, 25, .16); animation: rise .7s var(--ease-out) both; }
+.stat-tile::before { content: ''; position: absolute; left: 0; top: 18%; bottom: 18%; width: 4px; border-radius: 0 4px 4px 0; background: linear-gradient(180deg, #5eead4, #fbbf24); }
+.stat-tile:nth-child(2) { animation-delay: 80ms; } .stat-tile:nth-child(3) { animation-delay: 160ms; } .stat-tile:nth-child(4) { animation-delay: 240ms; }
+
+/* Tables */
+table { border-collapse: separate; border-spacing: 0; width: 100%; }
+thead th { background: #f4f9f8 !important; font-weight: 600; font-size: .8125rem; color: #5d7270 !important; }
+thead th:first-child { border-top-left-radius: 16px; } thead th:last-child { border-top-right-radius: 16px; }
+tbody tr { transition: background-color 180ms; }
+tbody tr:hover td { background: #f6fbfa; }
+tbody td { border-bottom: 1px solid #eaf1ef; }
+[data-flux-table], div:has(> table) { border-radius: 20px; }
+
+/* Settings tabs and menu */
+[data-flux-navlist-item] { border-radius: 999px !important; transition: background-color 200ms, color 200ms, transform 200ms var(--ease-out); }
+[data-flux-navlist-item]:hover { transform: translateX(3px); }
+[data-flux-navlist-item][data-current] { background: var(--ink) !important; color: #fff !important; }
+[data-flux-navlist-item][data-current] * { color: #fff !important; }
+
+/* Modals, callouts, badges, toast */
+dialog[data-flux-modal] { border-radius: 28px !important; border: 1px solid var(--line) !important; box-shadow: 0 40px 80px -30px rgba(6, 26, 25, .55) !important; animation: rise .35s var(--ease-out) both; }
+dialog[data-flux-modal]::backdrop { background: rgba(6, 26, 25, .5) !important; backdrop-filter: blur(6px); }
+[data-flux-callout] { border-radius: 20px !important; }
+[data-flux-badge] { border-radius: 999px !important; font-weight: 500; }
+
+/* Empty states */
+.empty-state { border-radius: 26px !important; border: 1.5px dashed #bfd3cf !important; background: rgba(255, 255, 255, .65); }
+.empty-state::before { content: ''; display: block; width: 52px; height: 52px; margin: 0 auto 1rem; border-radius: 50%; border: 6px solid #d5ece7; border-top-color: #5eead4; border-right-color: #fbbf24; animation: spin 6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes grow { from { transform: scaleY(0); } }
+
+/* Leaderboard podium */
+.podium { display: flex; align-items: flex-end; justify-content: center; gap: 14px; }
+.podium-col { flex: 1; max-width: 190px; text-align: center; }
+.podium-bar { transform-origin: bottom; animation: grow .9s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 140ms); border-radius: 22px 22px 8px 8px; display: grid; place-items: start center; padding-top: 14px; font-family: var(--font-display); font-size: 2.2rem; color: rgba(255, 255, 255, .95); }
+.avatar-dot { display: grid; place-items: center; width: 52px; height: 52px; margin: 0 auto 8px; border-radius: 18px; font-weight: 700; color: #3a1d00; background: linear-gradient(135deg, #ff9494, #fbbf24); }
+
+/* Error pages */
+.err-code { font-family: var(--font-display); font-size: 3.6rem; line-height: 1; color: #fff; }
